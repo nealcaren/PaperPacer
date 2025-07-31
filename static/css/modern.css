@@ -765,7 +765,11 @@ NBOARDING STYLES ===== */
 }
 
 .phase-toggle input[type="checkbox"] {
-    display: none;
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
 }
 
 .phase-card {
