@@ -62,14 +62,17 @@ class ScheduleCoordinator:
     
     def __init__(self, student_id: int):
         """Initialize coordinator for a specific student"""
-        from app import db, Student, ProjectPhase
+        from flask import current_app
+        from app import Student, ProjectPhase
         
         self.student_id = student_id
-        self.student = Student.query.get(student_id)
+        db = current_app.extensions['sqlalchemy'].db
+        
+        self.student = db.session.query(Student).get(student_id)
         if not self.student or not self.student.is_multi_phase:
             raise ValueError("Student not found or not using multi-phase system")
         
-        self.phases = ProjectPhase.query.filter_by(
+        self.phases = db.session.query(ProjectPhase).filter_by(
             student_id=student_id,
             is_active=True
         ).order_by(ProjectPhase.order_index).all()
@@ -304,12 +307,14 @@ class ScheduleCoordinator:
     
     def _calculate_phase_criticality(self, phase) -> CriticalityLevel:
         """Calculate criticality level for a phase"""
+        from flask import current_app
+        from app import PhaseTask
+        
         today = datetime.now().date()
         days_remaining = (phase.deadline - today).days
         
-        from app import PhaseTask
-        
-        tasks = PhaseTask.query.filter_by(phase_id=phase.id).all()
+        db = current_app.extensions['sqlalchemy'].db
+        tasks = db.session.query(PhaseTask).filter_by(phase_id=phase.id).all()
         if not tasks:
             return CriticalityLevel.LOW
         
@@ -353,9 +358,11 @@ class ScheduleCoordinator:
     
     def _get_task_clusters(self, phase) -> Dict[datetime, int]:
         """Get task clusters (multiple tasks on same day) for a phase"""
+        from flask import current_app
         from app import PhaseTask
         
-        tasks = PhaseTask.query.filter_by(phase_id=phase.id).all()
+        db = current_app.extensions['sqlalchemy'].db
+        tasks = db.session.query(PhaseTask).filter_by(phase_id=phase.id).all()
         clusters = {}
         
         for task in tasks:
