@@ -357,7 +357,6 @@ class OnboardingWizard {
     
     initPhaseToggles() {
         const phaseToggles = document.querySelectorAll('.phase-toggle');
-        console.log(`Initializing ${phaseToggles.length} phase toggles`);
         
         phaseToggles.forEach((toggle, index) => {
             const checkbox = toggle.querySelector('input[type="checkbox"]');
@@ -379,16 +378,12 @@ class OnboardingWizard {
                 checkbox.addEventListener('change', () => {
                     this.updatePhaseToggle(toggle);
                     this.saveToStorage();
-                    console.log(`Phase checkbox changed: ${toggle.dataset.phase}, checked: ${checkbox.checked}`);
                 });
             }
             
             // Initialize state
             this.updatePhaseToggle(toggle);
-            console.log(`Initialized phase toggle ${index + 1}: ${toggle.dataset.phase}`);
         });
-        
-        console.log('Phase toggles initialization complete');
     }
     
     updatePhaseToggle(toggle) {
@@ -405,7 +400,6 @@ class OnboardingWizard {
             toggle.classList.add('active');
             if (deadline) deadline.style.display = 'block';
             if (deadlineInput) deadlineInput.required = true;
-            console.log(`Phase activated: ${toggle.dataset.phase}`);
         } else {
             toggle.classList.remove('active');
             if (deadline) deadline.style.display = 'none';
@@ -413,7 +407,6 @@ class OnboardingWizard {
                 deadlineInput.required = false;
                 deadlineInput.value = '';
             }
-            console.log(`Phase deactivated: ${toggle.dataset.phase}`);
         }
     }
     
@@ -459,21 +452,15 @@ class OnboardingWizard {
     }
     
     nextStep() {
-        console.log('nextStep() called - current step:', this.currentStep);
-        
         if (!this.validateCurrentStep()) {
-            console.log('Validation failed for step:', this.currentStep);
             return;
         }
         
         if (this.currentStep < this.totalSteps) {
             this.currentStep++;
-            console.log('Advancing to step:', this.currentStep);
             this.updateStep();
             this.updateProgress();
             this.saveToStorage();
-        } else {
-            console.log('Already on last step:', this.currentStep);
         }
     }
     
@@ -487,8 +474,6 @@ class OnboardingWizard {
     }
     
     updateStep() {
-        console.log('updateStep called for step:', this.currentStep);
-        
         // Hide all step content
         document.querySelectorAll('.step-content').forEach(step => {
             step.classList.remove('active');
@@ -500,32 +485,24 @@ class OnboardingWizard {
         if (currentStepContent) {
             currentStepContent.classList.add('active');
             currentStepContent.style.display = 'block';
-            console.log('Activated step content for step:', this.currentStep);
             
             // Special handling for Step 2 to ensure phases are visible
             if (this.currentStep === 2) {
-                console.log('Step 2 activated, checking phases visibility...');
                 const phasesGrid = currentStepContent.querySelector('.phases-grid');
-                const phaseToggles = document.querySelectorAll('.step-content[data-step="2"] .phase-toggle');
-                
                 if (phasesGrid) {
                     phasesGrid.style.display = 'grid';
                     phasesGrid.style.visibility = 'visible';
                     phasesGrid.style.opacity = '1';
-                    console.log('Forced phases grid to be visible');
                 }
                 
-                phaseToggles.forEach((toggle, index) => {
+                // Ensure all phase toggles are visible
+                const phaseToggles = document.querySelectorAll('.step-content[data-step="2"] .phase-toggle');
+                phaseToggles.forEach(toggle => {
                     toggle.style.display = 'block';
                     toggle.style.visibility = 'visible';
                     toggle.style.opacity = '1';
-                    console.log(`Forced phase toggle ${index + 1} to be visible`);
                 });
-                
-                console.log(`Step 2 setup complete: ${phaseToggles.length} phase toggles processed`);
             }
-        } else {
-            console.error('Could not find step content for step:', this.currentStep);
         }
         
         // Update step indicators
@@ -561,11 +538,8 @@ class OnboardingWizard {
     }
     
     validateCurrentStep() {
-        console.log('Validating step:', this.currentStep);
-        
         const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
         if (!currentStepContent) {
-            console.log('ERROR: No step content found for step:', this.currentStep);
             return false;
         }
         
@@ -576,20 +550,15 @@ class OnboardingWizard {
             if (!input.value.trim()) {
                 input.style.borderColor = '#ef4444';
                 isValid = false;
-                console.log('Required field empty:', input.name || input.id, 'value:', input.value);
             } else {
                 input.style.borderColor = '#e5e7eb';
-                console.log('Required field valid:', input.name || input.id, 'value:', input.value);
             }
         });
         
         // Special validation for step 2 (phases)
         if (this.currentStep === 2) {
             const selectedPhases = document.querySelectorAll('input[name="selected_phases"]:checked');
-            console.log('Selected phases count:', selectedPhases.length);
-            
             if (selectedPhases.length === 0) {
-                console.log('ERROR: No phases selected');
                 alert('Please select at least one research phase.');
                 return false;
             }
@@ -599,25 +568,20 @@ class OnboardingWizard {
             selectedPhases.forEach(phase => {
                 const phaseValue = phase.value;
                 const deadlineInput = document.querySelector(`input[name="${phaseValue}_deadline"]`);
-                console.log('Checking deadline for phase:', phaseValue, 'value:', deadlineInput ? deadlineInput.value : 'input not found');
-                
                 if (!deadlineInput || !deadlineInput.value) {
                     if (deadlineInput) deadlineInput.style.borderColor = '#ef4444';
                     deadlineValid = false;
-                    console.log('ERROR: Missing deadline for phase:', phaseValue);
                 } else {
                     deadlineInput.style.borderColor = '#e5e7eb';
                 }
             });
             
             if (!deadlineValid) {
-                console.log('ERROR: Some phase deadlines are missing');
                 alert('Please set deadlines for all selected phases.');
                 return false;
             }
         }
         
-        console.log('Validation result for step', this.currentStep, ':', isValid);
         return isValid;
     }
     
@@ -633,6 +597,14 @@ class OnboardingWizard {
         
         if (selectedPhases.length === 0) {
             alert('Please select your research phases first.');
+            return;
+        }
+        
+        // Check if thesis deadline is in the past
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (thesisDate < today) {
+            alert('Your thesis deadline cannot be in the past. Please select a future date.');
             return;
         }
         
