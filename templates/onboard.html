@@ -370,11 +370,8 @@ class OnboardingWizard {
             
             if (card) {
                 card.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    checkbox.checked = !checkbox.checked;
-                    this.updatePhaseToggle(toggle);
-                    this.saveToStorage();
-                    console.log(`Phase toggle clicked: ${toggle.dataset.phase}`);
+                    // Don't prevent default - let the label work naturally
+                    console.log(`Phase card clicked: ${toggle.dataset.phase}`);
                 });
             }
             
@@ -382,7 +379,7 @@ class OnboardingWizard {
                 checkbox.addEventListener('change', () => {
                     this.updatePhaseToggle(toggle);
                     this.saveToStorage();
-                    console.log(`Phase checkbox changed: ${toggle.dataset.phase}`);
+                    console.log(`Phase checkbox changed: ${toggle.dataset.phase}, checked: ${checkbox.checked}`);
                 });
             }
             
