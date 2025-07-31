@@ -21,7 +21,9 @@ app = Flask(__name__)
 config_name = os.environ.get('FLASK_ENV') or 'default'
 app.config.from_object(config[config_name])
 
-db = SQLAlchemy(app)
+# Create SQLAlchemy instance after configuring app
+db = SQLAlchemy()
+db.init_app(app)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
