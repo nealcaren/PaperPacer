@@ -1,0 +1,798 @@
+{% extends "base.html" %}
+
+{% block title %}Get Started - PaperPacer{% endblock %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<div class="onboarding-container">
+    <!-- Progress Bar -->
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-steps">
+            <div class="step active" data-step="1">
+                <div class="step-circle">1</div>
+                <span class="step-label">Project Info</span>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-circle">2</div>
+                <span class="step-label">Research Phases</span>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-circle">3</div>
+                <span class="step-label">Work Schedule</span>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-circle">4</div>
+                <span class="step-label">Review & Submit</span>
+            </div>
+        </div>
+    </div>
+
+    <form action="{{ url_for('submit_onboarding') }}" method="POST" id="onboarding-form">
+        <!-- Step 1: Project Information -->
+        <div class="step-content active" data-step="1">
+            <div class="step-header">
+                <h2>Tell us about your research project</h2>
+                <p>We'll use this information to create a personalized timeline for your work.</p>
+            </div>
+            
+            <div class="form-card">
+                <div class="form-group">
+                    <label for="project_title">Project Title</label>
+                    <input type="text" id="project_title" name="project_title" required 
+                           placeholder="e.g., The Impact of Social Media on Political Discourse"
+                           autocomplete="off">
+                    <div class="input-hint">Give your research project a descriptive title</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="thesis_deadline">Final Thesis Deadline</label>
+                    <input type="date" id="thesis_deadline" name="thesis_deadline" required>
+                    <div class="input-hint">When is your final thesis or project due?</div>
+                </div>
+            </div>
+        </div>  
+      <!-- Step 2: Research Phases -->
+        <div class="step-content" data-step="2">
+            <div class="step-header">
+                <h2>Select your research phases</h2>
+                <p>Choose the phases that apply to your project. You can always add more later.</p>
+            </div>
+            
+            <div class="phases-grid">
+                <div class="phase-toggle" data-phase="literature_review">
+                    <input type="checkbox" id="phase_literature_review" name="selected_phases" value="literature_review" checked>
+                    <label for="phase_literature_review" class="phase-card">
+                        <div class="phase-icon">📚</div>
+                        <div class="phase-content">
+                            <h3>Literature Review</h3>
+                            <p>Systematic literature search, reading, and synthesis</p>
+                            <div class="phase-meta">
+                                <span class="duration">~4 weeks</span>
+                                <span class="task-count">15 tasks</span>
+                            </div>
+                        </div>
+                        <div class="phase-check">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </label>
+                    <div class="phase-deadline">
+                        <label for="literature_review_deadline">Deadline</label>
+                        <input type="date" id="literature_review_deadline" name="literature_review_deadline" required>
+                    </div>
+                </div>
+                
+                <div class="phase-toggle" data-phase="research_question">
+                    <input type="checkbox" id="phase_research_question" name="selected_phases" value="research_question">
+                    <label for="phase_research_question" class="phase-card">
+                        <div class="phase-icon">❓</div>
+                        <div class="phase-content">
+                            <h3>Research Question Development</h3>
+                            <p>Problem formulation and question refinement</p>
+                            <div class="phase-meta">
+                                <span class="duration">~2 weeks</span>
+                                <span class="task-count">10 tasks</span>
+                            </div>
+                        </div>
+                        <div class="phase-check">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </label>
+                    <div class="phase-deadline">
+                        <label for="research_question_deadline">Deadline</label>
+                        <input type="date" id="research_question_deadline" name="research_question_deadline">
+                    </div>
+                </div>           
+     <div class="phase-toggle" data-phase="methods_planning">
+                    <input type="checkbox" id="phase_methods_planning" name="selected_phases" value="methods_planning">
+                    <label for="phase_methods_planning" class="phase-card">
+                        <div class="phase-icon">🔬</div>
+                        <div class="phase-content">
+                            <h3>Methods Planning</h3>
+                            <p>Research design and methodology development</p>
+                            <div class="phase-meta">
+                                <span class="duration">~3 weeks</span>
+                                <span class="task-count">15 tasks</span>
+                            </div>
+                        </div>
+                        <div class="phase-check">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </label>
+                    <div class="phase-deadline">
+                        <label for="methods_planning_deadline">Deadline</label>
+                        <input type="date" id="methods_planning_deadline" name="methods_planning_deadline">
+                    </div>
+                </div>
+                
+                <div class="phase-toggle" data-phase="irb_proposal">
+                    <input type="checkbox" id="phase_irb_proposal" name="selected_phases" value="irb_proposal">
+                    <label for="phase_irb_proposal" class="phase-card">
+                        <div class="phase-icon">📋</div>
+                        <div class="phase-content">
+                            <h3>IRB Proposal</h3>
+                            <p>Ethics review and compliance documentation</p>
+                            <div class="phase-meta">
+                                <span class="duration">~2 weeks</span>
+                                <span class="task-count">12 tasks</span>
+                            </div>
+                        </div>
+                        <div class="phase-check">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </label>
+                    <div class="phase-deadline">
+                        <label for="irb_proposal_deadline">Deadline</label>
+                        <input type="date" id="irb_proposal_deadline" name="irb_proposal_deadline">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="smart-suggestions">
+                <button type="button" class="suggestion-btn" id="auto-suggest-deadlines">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 1v6l4 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    Auto-suggest deadlines
+                </button>
+            </div>
+        </div>        
+        <!-- Step 3: Work Schedule -->
+        <div class="step-content" data-step="3">
+            <div class="step-header">
+                <h2>Set your work schedule</h2>
+                <p>Tell us when and how intensively you prefer to work on your research.</p>
+            </div>
+            
+            <div class="schedule-presets">
+                <h3>Quick Presets</h3>
+                <div class="preset-grid">
+                    <button type="button" class="preset-card" data-preset="balanced">
+                        <div class="preset-icon">⚖️</div>
+                        <div class="preset-content">
+                            <h4>Balanced Week</h4>
+                            <p>Light work Mon-Fri</p>
+                        </div>
+                    </button>
+                    <button type="button" class="preset-card" data-preset="intensive">
+                        <div class="preset-icon">🔥</div>
+                        <div class="preset-content">
+                            <h4>Intensive Schedule</h4>
+                            <p>Heavy work 3 days/week</p>
+                        </div>
+                    </button>
+                    <button type="button" class="preset-card" data-preset="weekend">
+                        <div class="preset-icon">🏖️</div>
+                        <div class="preset-content">
+                            <h4>Weekend Warrior</h4>
+                            <p>Focus on weekends</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="schedule-custom">
+                <h3>Custom Schedule</h3>
+                <div class="intensity-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot none"></div>
+                        <span>No Work</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot light"></div>
+                        <span>Light (1 task)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot heavy"></div>
+                        <span>Heavy (2 tasks)</span>
+                    </div>
+                </div>
+                
+                <div class="days-grid">
+                    {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                    <div class="day-card">
+                        <div class="day-header">
+                            <span class="day-name">{{ day }}</span>
+                        </div>
+                        <div class="intensity-selector">
+                            <input type="radio" id="{{ day.lower() }}_none" name="{{ day.lower() }}_intensity" value="none" checked>
+                            <label for="{{ day.lower() }}_none" class="intensity-option none">
+                                <span class="intensity-dot"></span>
+                            </label>
+                            
+                            <input type="radio" id="{{ day.lower() }}_light" name="{{ day.lower() }}_intensity" value="light">
+                            <label for="{{ day.lower() }}_light" class="intensity-option light">
+                                <span class="intensity-dot"></span>
+                            </label>
+                            
+                            <input type="radio" id="{{ day.lower() }}_heavy" name="{{ day.lower() }}_intensity" value="heavy">
+                            <label for="{{ day.lower() }}_heavy" class="intensity-option heavy">
+                                <span class="intensity-dot"></span>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>       
+ <!-- Step 4: Review & Submit -->
+        <div class="step-content" data-step="4">
+            <div class="step-header">
+                <h2>Review your project setup</h2>
+                <p>Everything looks good? Let's create your personalized research timeline.</p>
+            </div>
+            
+            <div class="review-sections">
+                <div class="review-card">
+                    <h3>Project Information</h3>
+                    <div class="review-item">
+                        <span class="review-label">Title:</span>
+                        <span class="review-value" id="review-title">-</span>
+                    </div>
+                    <div class="review-item">
+                        <span class="review-label">Final Deadline:</span>
+                        <span class="review-value" id="review-deadline">-</span>
+                    </div>
+                </div>
+                
+                <div class="review-card">
+                    <h3>Research Phases</h3>
+                    <div id="review-phases">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="review-card">
+                    <h3>Work Schedule</h3>
+                    <div id="review-schedule">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="autosave-indicator">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M13.5 3.5L6 11l-3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Your progress is automatically saved</span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="step-navigation">
+            <button type="button" class="btn-secondary" id="prev-btn" style="display: none;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Previous
+            </button>
+            
+            <button type="button" class="btn-primary" id="next-btn">
+                Next
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            
+            <button type="submit" class="btn-primary" id="submit-btn" style="display: none;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M13.5 3.5L6 11l-3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Create My Project
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Modern Onboarding JavaScript
+class OnboardingWizard {
+    constructor() {
+        this.currentStep = 1;
+        this.totalSteps = 4;
+        this.formData = {};
+        
+        this.init();
+        this.loadFromStorage();
+    }
+    
+    init() {
+        this.bindEvents();
+        this.updateProgress();
+        this.initPhaseToggles();
+        this.initPresets();
+        this.initAutoSave();
+    }
+    
+    bindEvents() {
+        // Navigation
+        document.getElementById('next-btn').addEventListener('click', () => this.nextStep());
+        document.getElementById('prev-btn').addEventListener('click', () => this.prevStep());
+        document.getElementById('submit-btn').addEventListener('click', (e) => this.handleSubmit(e));
+        
+        // Auto-suggest deadlines
+        document.getElementById('auto-suggest-deadlines').addEventListener('click', () => this.autoSuggestDeadlines());
+        
+        // Form inputs
+        document.getElementById('project_title').addEventListener('input', (e) => this.saveToStorage());
+        document.getElementById('thesis_deadline').addEventListener('change', (e) => this.saveToStorage());
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+    }
+    
+    initPhaseToggles() {
+        const phaseToggles = document.querySelectorAll('.phase-toggle');
+        console.log(`Initializing ${phaseToggles.length} phase toggles`);
+        
+        phaseToggles.forEach((toggle, index) => {
+            const checkbox = toggle.querySelector('input[type="checkbox"]');
+            const card = toggle.querySelector('.phase-card');
+            
+            // Ensure toggle is visible
+            toggle.style.display = 'block';
+            toggle.style.visibility = 'visible';
+            toggle.style.opacity = '1';
+            
+            if (card) {
+                card.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    checkbox.checked = !checkbox.checked;
+                    this.updatePhaseToggle(toggle);
+                    this.saveToStorage();
+                    console.log(`Phase toggle clicked: ${toggle.dataset.phase}`);
+                });
+            }
+            
+            if (checkbox) {
+                checkbox.addEventListener('change', () => {
+                    this.updatePhaseToggle(toggle);
+                    this.saveToStorage();
+                    console.log(`Phase checkbox changed: ${toggle.dataset.phase}`);
+                });
+            }
+            
+            // Initialize state
+            this.updatePhaseToggle(toggle);
+            console.log(`Initialized phase toggle ${index + 1}: ${toggle.dataset.phase}`);
+        });
+        
+        console.log('Phase toggles initialization complete');
+    }
+    
+    updatePhaseToggle(toggle) {
+        const checkbox = toggle.querySelector('input[type="checkbox"]');
+        const deadline = toggle.querySelector('.phase-deadline');
+        const deadlineInput = deadline ? deadline.querySelector('input[type="date"]') : null;
+        
+        // Ensure toggle is always visible
+        toggle.style.display = 'block';
+        toggle.style.visibility = 'visible';
+        toggle.style.opacity = '1';
+        
+        if (checkbox && checkbox.checked) {
+            toggle.classList.add('active');
+            if (deadline) deadline.style.display = 'block';
+            if (deadlineInput) deadlineInput.required = true;
+            console.log(`Phase activated: ${toggle.dataset.phase}`);
+        } else {
+            toggle.classList.remove('active');
+            if (deadline) deadline.style.display = 'none';
+            if (deadlineInput) {
+                deadlineInput.required = false;
+                deadlineInput.value = '';
+            }
+            console.log(`Phase deactivated: ${toggle.dataset.phase}`);
+        }
+    }
+    
+    initPresets() {
+        const presetCards = document.querySelectorAll('.preset-card');
+        
+        presetCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove active from all cards
+                presetCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                
+                const preset = card.dataset.preset;
+                this.applyPreset(preset);
+                this.saveToStorage();
+            });
+        });
+    }
+    
+    applyPreset(preset) {
+        const presets = {
+            balanced: {
+                monday: 'light', tuesday: 'light', wednesday: 'light', 
+                thursday: 'light', friday: 'light', saturday: 'none', sunday: 'none'
+            },
+            intensive: {
+                monday: 'heavy', tuesday: 'none', wednesday: 'heavy', 
+                thursday: 'none', friday: 'heavy', saturday: 'none', sunday: 'none'
+            },
+            weekend: {
+                monday: 'none', tuesday: 'none', wednesday: 'none', 
+                thursday: 'none', friday: 'light', saturday: 'heavy', sunday: 'heavy'
+            }
+        };
+        
+        const schedule = presets[preset];
+        if (!schedule) return;
+        
+        Object.entries(schedule).forEach(([day, intensity]) => {
+            const radio = document.querySelector(`input[name="${day}_intensity"][value="${intensity}"]`);
+            if (radio) radio.checked = true;
+        });
+    }
+    
+    nextStep() {
+        console.log('nextStep() called - current step:', this.currentStep);
+        
+        if (!this.validateCurrentStep()) {
+            console.log('Validation failed for step:', this.currentStep);
+            return;
+        }
+        
+        if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            console.log('Advancing to step:', this.currentStep);
+            this.updateStep();
+            this.updateProgress();
+            this.saveToStorage();
+        } else {
+            console.log('Already on last step:', this.currentStep);
+        }
+    }
+    
+    prevStep() {
+        if (this.currentStep > 1) {
+            this.currentStep--;
+            this.updateStep();
+            this.updateProgress();
+            this.saveToStorage();
+        }
+    }
+    
+    updateStep() {
+        console.log('updateStep called for step:', this.currentStep);
+        
+        // Hide all step content
+        document.querySelectorAll('.step-content').forEach(step => {
+            step.classList.remove('active');
+        });
+        
+        // Show current step
+        const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
+        if (currentStepContent) {
+            currentStepContent.classList.add('active');
+            console.log('Activated step content for step:', this.currentStep);
+            
+            // Special handling for Step 2 to ensure phases are visible
+            if (this.currentStep === 2) {
+                console.log('Step 2 activated, checking phases visibility...');
+                const phasesGrid = currentStepContent.querySelector('.phases-grid');
+                const phaseToggles = document.querySelectorAll('.step-content[data-step="2"] .phase-toggle');
+                
+                if (phasesGrid) {
+                    phasesGrid.style.display = 'grid';
+                    phasesGrid.style.visibility = 'visible';
+                    phasesGrid.style.opacity = '1';
+                    console.log('Forced phases grid to be visible');
+                }
+                
+                phaseToggles.forEach((toggle, index) => {
+                    toggle.style.display = 'block';
+                    toggle.style.visibility = 'visible';
+                    toggle.style.opacity = '1';
+                    console.log(`Forced phase toggle ${index + 1} to be visible`);
+                });
+                
+                console.log(`Step 2 setup complete: ${phaseToggles.length} phase toggles processed`);
+            }
+        } else {
+            console.error('Could not find step content for step:', this.currentStep);
+        }
+        
+        // Update step indicators
+        document.querySelectorAll('.progress-steps .step').forEach((step, index) => {
+            if (index + 1 <= this.currentStep) {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
+            }
+        });
+        
+        // Update navigation buttons
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        prevBtn.style.display = this.currentStep > 1 ? 'flex' : 'none';
+        
+        if (this.currentStep === this.totalSteps) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'flex';
+            this.updateReview();
+        } else {
+            nextBtn.style.display = 'flex';
+            submitBtn.style.display = 'none';
+        }
+    }
+    
+    updateProgress() {
+        const progressFill = document.getElementById('progress-fill');
+        const percentage = (this.currentStep / this.totalSteps) * 100;
+        progressFill.style.width = `${percentage}%`;
+    }
+    
+    validateCurrentStep() {
+        console.log('Validating step:', this.currentStep);
+        
+        const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
+        if (!currentStepContent) {
+            console.log('ERROR: No step content found for step:', this.currentStep);
+            return false;
+        }
+        
+        const requiredInputs = currentStepContent.querySelectorAll('input[required]');
+        let isValid = true;
+        
+        requiredInputs.forEach(input => {
+            if (!input.value.trim()) {
+                input.style.borderColor = '#ef4444';
+                isValid = false;
+                console.log('Required field empty:', input.name || input.id, 'value:', input.value);
+            } else {
+                input.style.borderColor = '#e5e7eb';
+                console.log('Required field valid:', input.name || input.id, 'value:', input.value);
+            }
+        });
+        
+        // Special validation for step 2 (phases)
+        if (this.currentStep === 2) {
+            const selectedPhases = document.querySelectorAll('input[name="selected_phases"]:checked');
+            console.log('Selected phases count:', selectedPhases.length);
+            
+            if (selectedPhases.length === 0) {
+                console.log('ERROR: No phases selected');
+                alert('Please select at least one research phase.');
+                return false;
+            }
+            
+            // Validate deadlines for selected phases
+            let deadlineValid = true;
+            selectedPhases.forEach(phase => {
+                const phaseValue = phase.value;
+                const deadlineInput = document.querySelector(`input[name="${phaseValue}_deadline"]`);
+                console.log('Checking deadline for phase:', phaseValue, 'value:', deadlineInput ? deadlineInput.value : 'input not found');
+                
+                if (!deadlineInput || !deadlineInput.value) {
+                    if (deadlineInput) deadlineInput.style.borderColor = '#ef4444';
+                    deadlineValid = false;
+                    console.log('ERROR: Missing deadline for phase:', phaseValue);
+                } else {
+                    deadlineInput.style.borderColor = '#e5e7eb';
+                }
+            });
+            
+            if (!deadlineValid) {
+                console.log('ERROR: Some phase deadlines are missing');
+                alert('Please set deadlines for all selected phases.');
+                return false;
+            }
+        }
+        
+        console.log('Validation result for step', this.currentStep, ':', isValid);
+        return isValid;
+    }
+    
+    autoSuggestDeadlines() {
+        const thesisDeadline = document.getElementById('thesis_deadline').value;
+        if (!thesisDeadline) {
+            alert('Please set your thesis deadline first.');
+            return;
+        }
+        
+        const thesisDate = new Date(thesisDeadline);
+        const selectedPhases = document.querySelectorAll('input[name="selected_phases"]:checked');
+        
+        if (selectedPhases.length === 0) {
+            alert('Please select your research phases first.');
+            return;
+        }
+        
+        // Calculate suggested deadlines working backwards from thesis deadline
+        const phaseDurations = {
+            'literature_review': 30, // 30 days
+            'research_question': 14, // 14 days  
+            'methods_planning': 21, // 21 days
+            'irb_proposal': 14 // 14 days
+        };
+        
+        let currentDate = new Date(thesisDate);
+        const phases = Array.from(selectedPhases).reverse(); // Work backwards
+        
+        phases.forEach(phase => {
+            const phaseValue = phase.value;
+            const duration = phaseDurations[phaseValue] || 14;
+            
+            currentDate.setDate(currentDate.getDate() - duration);
+            
+            const deadlineInput = document.querySelector(`input[name="${phaseValue}_deadline"]`);
+            if (deadlineInput) {
+                deadlineInput.value = currentDate.toISOString().split('T')[0];
+            }
+        });
+        
+        this.saveToStorage();
+    }
+    
+    updateReview() {
+        // Update project info
+        const title = document.getElementById('project_title').value;
+        const deadline = document.getElementById('thesis_deadline').value;
+        
+        document.getElementById('review-title').textContent = title || '-';
+        document.getElementById('review-deadline').textContent = deadline || '-';
+        
+        // Update phases
+        const selectedPhases = document.querySelectorAll('input[name="selected_phases"]:checked');
+        const reviewPhases = document.getElementById('review-phases');
+        reviewPhases.innerHTML = '';
+        
+        selectedPhases.forEach(phase => {
+            const phaseValue = phase.value;
+            const phaseName = this.getPhaseDisplayName(phaseValue);
+            const deadlineInput = document.querySelector(`input[name="${phaseValue}_deadline"]`);
+            const deadline = deadlineInput ? deadlineInput.value : '-';
+            
+            const phaseItem = document.createElement('div');
+            phaseItem.className = 'review-item';
+            phaseItem.innerHTML = `
+                <span class="review-label">${phaseName}:</span>
+                <span class="review-value">${deadline}</span>
+            `;
+            reviewPhases.appendChild(phaseItem);
+        });
+        
+        // Update schedule
+        const reviewSchedule = document.getElementById('review-schedule');
+        reviewSchedule.innerHTML = '';
+        
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        
+        days.forEach((day, index) => {
+            const selectedIntensity = document.querySelector(`input[name="${day}_intensity"]:checked`);
+            const intensity = selectedIntensity ? selectedIntensity.value : 'none';
+            
+            if (intensity !== 'none') {
+                const scheduleItem = document.createElement('div');
+                scheduleItem.className = 'review-item';
+                scheduleItem.innerHTML = `
+                    <span class="review-label">${dayNames[index]}:</span>
+                    <span class="review-value">${intensity.charAt(0).toUpperCase() + intensity.slice(1)}</span>
+                `;
+                reviewSchedule.appendChild(scheduleItem);
+            }
+        });
+    }
+    
+    getPhaseDisplayName(phaseType) {
+        const names = {
+            'literature_review': 'Literature Review',
+            'research_question': 'Research Question Development',
+            'methods_planning': 'Methods Planning',
+            'irb_proposal': 'IRB Proposal'
+        };
+        return names[phaseType] || phaseType;
+    }
+    
+    initAutoSave() {
+        setInterval(() => this.saveToStorage(), 5000); // Save every 5 seconds
+    }
+    
+    saveToStorage() {
+        const formData = new FormData(document.getElementById('onboarding-form'));
+        const data = {};
+        
+        for (let [key, value] of formData.entries()) {
+            if (data[key]) {
+                if (Array.isArray(data[key])) {
+                    data[key].push(value);
+                } else {
+                    data[key] = [data[key], value];
+                }
+            } else {
+                data[key] = value;
+            }
+        }
+        
+        data.currentStep = this.currentStep;
+        localStorage.setItem('paperpacer_onboarding', JSON.stringify(data));
+    }
+    
+    loadFromStorage() {
+        const saved = localStorage.getItem('paperpacer_onboarding');
+        if (!saved) return;
+        
+        try {
+            const data = JSON.parse(saved);
+            
+            // Restore form values
+            Object.entries(data).forEach(([key, value]) => {
+                if (key === 'currentStep') {
+                    this.currentStep = value;
+                    return;
+                }
+                
+                const input = document.querySelector(`[name="${key}"]`);
+                if (input) {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        if (Array.isArray(value)) {
+                            value.forEach(v => {
+                                const specificInput = document.querySelector(`[name="${key}"][value="${v}"]`);
+                                if (specificInput) specificInput.checked = true;
+                            });
+                        } else {
+                            const specificInput = document.querySelector(`[name="${key}"][value="${value}"]`);
+                            if (specificInput) specificInput.checked = true;
+                        }
+                    } else {
+                        input.value = value;
+                    }
+                }
+            });
+            
+            // Update UI
+            this.updateStep();
+            this.updateProgress();
+            this.initPhaseToggles();
+            
+        } catch (e) {
+            console.error('Failed to load saved data:', e);
+        }
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new OnboardingWizard();
+});
+</script>
+
+{% endblock %}
