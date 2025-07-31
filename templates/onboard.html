@@ -747,6 +747,31 @@ class OnboardingWizard {
         localStorage.setItem('paperpacer_onboarding', JSON.stringify(data));
     }
     
+    handleSubmit(e) {
+        e.preventDefault();
+        
+        if (!this.validateCurrentStep()) {
+            return;
+        }
+        
+        // Clear saved data since we're submitting
+        localStorage.removeItem('paperpacer_onboarding');
+        
+        // Submit the form
+        document.getElementById('onboarding-form').submit();
+    }
+    
+    handleKeyboard(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            if (this.currentStep === this.totalSteps) {
+                this.handleSubmit(e);
+            } else {
+                this.nextStep();
+            }
+        }
+    }
+    
     loadFromStorage() {
         const saved = localStorage.getItem('paperpacer_onboarding');
         if (!saved) return;
