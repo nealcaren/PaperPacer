@@ -1,0 +1,22 @@
+[Unit]
+Description=PaperPacer - Literature Review Scheduler
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/path/to/paperpacer
+Environment=PATH=/path/to/paperpacer/venv/bin
+Environment=FLASK_ENV=production
+Environment=FLASK_DEBUG=0
+ExecStart=/path/to/paperpacer/venv/bin/gunicorn --config gunicorn.conf.py wsgi:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

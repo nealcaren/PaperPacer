@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import json
 import secrets
+import os
 from schedule_coordinator import ScheduleCoordinator, create_timeline_visualization_data
 import smtplib
 from email.mime.text import MIMEText
@@ -2338,6 +2339,46 @@ def mark_today_complete():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+# Initialize database on startup
+def init_db():
+    """Initialize database tables and handle migrations"""
+    with app.app_context():
+        try:
+            db.create_all()
+            
+            # Check if priority column exists, add if missing
+            import sqlite3
+            db_path = 'instance/paperpacer.db'
+            
+            if os.path.exists(db_path):
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
+                
+                # Check and add priority column to phase_task if missing
+                try:
+                    cursor.execute("SELECT priority FROM phase_task LIMIT 1")
+                except sqlite3.OperationalError:
+                    cursor.execute("ALTER TABLE phase_task ADD COLUMN priority VARCHAR(10) DEFAULT 'medium'")
+                    print("Added priority column to phase_task")
+                
+                # Check and add priority column to schedule_item if missing
+                try:
+                    cursor.execute("SELECT priority FROM schedule_item LIMIT 1")
+                except sqlite3.OperationalError:
+                    cursor.execute("ALTER TABLE schedule_item ADD COLUMN priority VARCHAR(10) DEFAULT 'medium'")
+                    print("Added priority column to schedule_item")
+                
+                conn.commit()
+                conn.close()
+            
+            print("Database initialized successfully!")
+            
+        except Exception as e:
+            print(f"Database initialization error: {e}")
+
+# Initialize database on import
+init_db()
 
 if __name__ == '__main__':
     with app.app_context():
