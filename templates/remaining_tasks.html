@@ -17,7 +17,7 @@
                 <select id="phase-select" onchange="filterByPhase(this.value)">
                     <option value="">All Phases</option>
                     {% for phase in user_phases %}
-                        <option value="{{ phase.id }}" {% if phase_filter and phase_filter|int == phase.id %}selected{% endif %}>
+                        <option value="{{ phase.id }}" {% if phase_filter and phase_filter|string == phase.id|string %}selected{% endif %}>
                             {{ get_phase_icon(phase.phase_type) }} {{ phase.phase_name }}
                         </option>
                     {% endfor %}
