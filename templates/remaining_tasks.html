@@ -65,9 +65,9 @@
                             <span class="text-sm" style="color: var(--error-color);">
                                 📅 Was due: {{ task.date.strftime('%A, %B %d') }}
                             </span>
-                            {% if student.is_multi_phase and hasattr(task, 'phase') %}
+                            {% if student.is_multi_phase and task.project_phase %}
                                 <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 12px;">
-                                    {{ get_phase_icon(task.phase.phase_type) }} {{ task.phase.phase_name }}
+                                    {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name }}
                                 </span>
                             {% endif %}
                             <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--error-color); color: white; border-radius: 12px;">
@@ -103,9 +103,9 @@
                             <span class="text-sm" style="color: var(--primary-color);">
                                 📅 Due today
                             </span>
-                            {% if student.is_multi_phase and hasattr(task, 'phase') %}
+                            {% if student.is_multi_phase and task.project_phase %}
                                 <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--secondary-color); color: white; border-radius: 12px;">
-                                    {{ get_phase_icon(task.phase.phase_type) }} {{ task.phase.phase_name }}
+                                    {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name }}
                                 </span>
                             {% endif %}
                             <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 12px;">
@@ -146,9 +146,9 @@
                                     <span class="text-sm opacity-75">
                                         📅 {{ task.date.strftime('%A, %B %d') }}
                                     </span>
-                                    {% if student.is_multi_phase and hasattr(task, 'phase') %}
+                                    {% if student.is_multi_phase and task.project_phase %}
                                         <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--accent-color); color: white; border-radius: 12px;">
-                                            {{ get_phase_icon(task.phase.phase_type) }} {{ task.phase.phase_name }}
+                                            {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name }}
                                         </span>
                                     {% endif %}
                                     <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--secondary-color); color: white; border-radius: 12px;">
