@@ -1588,12 +1588,10 @@ def update_settings():
         # Regenerate tasks for all phases
         for phase in current_user.project_phases:
             # Use existing task generation logic
-            from phase_task_generator import PhaseTaskGenerator
             try:
-                generator = PhaseTaskGenerator()
-                generator.generate_tasks_for_phase(phase.id)
-            except ImportError:
-                # Fallback: create basic tasks if generator not available
+                PhaseTaskGenerator.create_and_save_tasks_for_phase(phase, current_user.work_days)
+            except Exception as e:
+                # Fallback: create basic tasks if generator fails
                 today = datetime.now().date()
                 days_until_deadline = (phase.deadline - today).days
                 if days_until_deadline > 0:
@@ -1635,54 +1633,22 @@ def submit_progress():
     phase_completions = []
     
     if current_user.is_multi_phase:
-        # Enhanced multi-phase progress tracking
-        from phase_progress_tracker import PhaseProgressTracker
+        # Basic multi-phase progress tracking
+        progress_log = ProgressLog(
+            student_id=current_user.id,
+            date=date,
+            tasks_completed=json.dumps(completed_tasks),
+            notes=notes
+        )
+        db.session.add(progress_log)
         
-        try:
-            tracker = PhaseProgressTracker(current_user.id)
-            
-            # Group completed tasks by phase
-            phase_tasks = {}
-            for task_id in completed_tasks:
-                task = PhaseTask.query.get(task_id)
-                if task:
-                    phase = ProjectPhase.query.get(task.phase_id)
-                    if phase and phase.student_id == current_user.id:
-                        task.completed = True
-                        
-                        if task.phase_id not in phase_tasks:
-                            phase_tasks[task.phase_id] = []
-                        phase_tasks[task.phase_id].append(int(task_id))
-            
-            # Log progress for each phase and detect milestones
-            for phase_id, task_ids in phase_tasks.items():
-                progress_result = tracker.log_phase_progress(phase_id, task_ids, notes, date)
-                
-                if progress_result['milestones_achieved']:
-                    milestones_achieved.extend(progress_result['milestones_achieved'])
-                
-                # Check for phase completion
-                completion_data = tracker.detect_phase_completion(phase_id)
-                if completion_data:
-                    phase_completions.append(completion_data)
-            
-        except ImportError:
-            # Fallback to basic progress logging if tracker not available
-            progress_log = ProgressLog(
-                student_id=current_user.id,
-                date=date,
-                tasks_completed=json.dumps(completed_tasks),
-                notes=notes
-            )
-            db.session.add(progress_log)
-            
-            # Mark completed tasks
-            for task_id in completed_tasks:
-                task = PhaseTask.query.get(task_id)
-                if task:
-                    phase = ProjectPhase.query.get(task.phase_id)
-                    if phase and phase.student_id == current_user.id:
-                        task.completed = True
+        # Mark completed tasks
+        for task_id in completed_tasks:
+            task = PhaseTask.query.get(task_id)
+            if task:
+                phase = ProjectPhase.query.get(task.phase_id)
+                if phase and phase.student_id == current_user.id:
+                    task.completed = True
     else:
         # Legacy single-phase progress tracking
         progress_log = ProgressLog(
@@ -1740,9 +1706,8 @@ def phase_progress_detail(phase_id):
         return redirect(url_for('dashboard'))
     
     try:
-        from phase_progress_tracker import PhaseProgressTracker
-        tracker = PhaseProgressTracker(current_user.id)
-        progress_summary = tracker.get_phase_progress_summary(phase_id)
+        # Get basic progress information
+        progress_summary = PhaseManager.get_phase_progress(phase_id)
         
         return render_template('phase_progress.html',
                              phase=phase,
@@ -1763,8 +1728,25 @@ def api_progress_data(student_id):
         return jsonify({'error': 'Multi-phase project required'}), 400
     
     try:
-        from phase_progress_tracker import create_progress_visualization_data
-        progress_data = create_progress_visualization_data(student_id)
+        # Return basic progress data
+        phases = PhaseManager.get_active_phases(student_id)
+        progress_data = {
+            'phases': [],
+            'overall_progress': 0
+        }
+        
+        total_progress = 0
+        for phase in phases:
+            phase_progress = PhaseManager.get_phase_progress(phase.id)
+            progress_data['phases'].append({
+                'id': phase.id,
+                'name': phase.phase_name,
+                'progress': phase_progress['progress_percentage'] if phase_progress else 0
+            })
+            total_progress += phase_progress['progress_percentage'] if phase_progress else 0
+        
+        progress_data['overall_progress'] = total_progress / len(phases) if phases else 0
+        
         return jsonify(progress_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
