@@ -304,7 +304,7 @@ class PhaseManager:
         
         # Validate deadlines first
         if not PhaseManager.validate_phase_deadlines(selected_phases, deadlines):
-            raise ValueError("Phase deadlines are not in valid chronological order")
+            raise ValueError("Phase deadlines must be in the future")
         
         # Create phases in order
         for order_index, phase_type in enumerate(selected_phases, 1):
@@ -338,27 +338,14 @@ class PhaseManager:
     
     @staticmethod
     def validate_phase_deadlines(selected_phases, deadlines):
-        """Validate that phase deadlines are in logical chronological order"""
+        """Validate that phase deadlines are in the future (allows overlapping phases)"""
         if not selected_phases or not deadlines:
             return False
         
-        # Define the logical order of phases
-        phase_order = ['literature_review', 'research_question', 'methods_planning', 'irb_proposal']
-        
-        # Filter to only selected phases in their logical order
-        ordered_selected = [p for p in phase_order if p in selected_phases]
-        
-        # Check that deadlines are in chronological order
-        previous_deadline = None
-        for phase_type in ordered_selected:
+        # Check that all selected phases have deadlines
+        for phase_type in selected_phases:
             if phase_type not in deadlines:
                 return False
-            
-            current_deadline = deadlines[phase_type]
-            if previous_deadline and current_deadline <= previous_deadline:
-                return False
-            
-            previous_deadline = current_deadline
         
         # Ensure all deadlines are in the future
         today = datetime.now().date()
@@ -1220,7 +1207,7 @@ def submit_onboarding():
         
         # Validate phase deadlines using PhaseManager
         if not PhaseManager.validate_phase_deadlines(selected_phases, phase_deadlines):
-            flash('Phase deadlines must be in chronological order and in the future')
+            flash('Phase deadlines must be in the future')
             return render_template('onboard.html')
         
         # Validate all phase deadlines are before thesis deadline
