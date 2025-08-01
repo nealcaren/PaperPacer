@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Login - PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Welcome Back</h2>
+    <p>Log in to continue with your literature review schedule.</p>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <form action="{{ url_for('login') }}" method="POST">
+        <div class="form-group">
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <button type="submit" class="btn">Log In</button>
+    </form>
+    
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <a href="{{ url_for('forgot_password') }}" 
+           style="color: var(--primary-color); text-decoration: none; font-size: 0.9rem;">
+            🔑 Forgot your password?
+        </a>
+    </div>
+    
+    <p style="margin-top: 1.5rem; text-align: center;">
+        Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--primary-color);">Sign up here</a>
+    </p>
+</div>
+{% endblock %}

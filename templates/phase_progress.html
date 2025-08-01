@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}{{ phase.phase_name }} Progress - PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="flex justify-between items-center mb-4">
+        <h2>📊 {{ phase.phase_name }} Progress</h2>
+        <div class="flex gap-2">
+            <a href="{{ url_for('phase_detail', phase_id=phase.id) }}" class="btn btn-secondary">← Phase Details</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Dashboard</a>
+        </div>
+    </div>
+    
+    <!-- Progress Overview -->
+    <div class="progress-overview grid grid-4" style="margin-bottom: 2rem;">
+        <div class="progress-stat">
+            <div class="stat-value">{{ "%.1f"|format(progress_summary.progress_percentage) }}%</div>
+            <div class="stat-label">Complete</div>
+        </div>
+        <div class="progress-stat">
+            <div class="stat-value">{{ progress_summary.completed_tasks }}/{{ progress_summary.total_tasks }}</div>
+            <div class="stat-label">Tasks</div>
+        </div>
+        <div class="progress-stat">
+            <div class="stat-value">{{ progress_summary.current_streak }}</div>
+            <div class="stat-label">Current Streak</div>
+        </div>
+        <div class="progress-stat">
+            <div class="stat-value">{{ progress_summary.days_remaining }}</div>
+            <div class="stat-label">Days Left</div>
+        </div>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div class="progress-section" style="margin-bottom: 2rem;">
+        <div class="flex justify-between items-center mb-2">
+            <h3>Overall Progress</h3>
+            <span class="progress-percentage">{{ "%.1f"|format(progress_summary.progress_percentage) }}%</span>
+        </div>
+        <div class="progress-bar-large">
+            <div class="progress-fill-large" style="width: {{ progress_summary.progress_percentage }}%"></div>
+        </div>
+        <div class="flex justify-between items-center mt-2">
+            <span class="text-sm opacity-75">{{ progress_summary.completed_tasks }} tasks completed</span>
+            <span class="text-sm opacity-75">{{ progress_summary.total_tasks - progress_summary.completed_tasks }} remaining</span>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <!-- Performance Metrics -->
+    <div class="card">
+        <h3>📈 Performance Metrics</h3>
+        
+        <div class="metric-item">
+            <div class="metric-header">
+                <span class="metric-label">Average Tasks per Day</span>
+                <span class="metric-value">{{ "%.1f"|format(progress_summary.average_tasks_per_day) }}</span>
+            </div>
+            <div class="metric-description">Based on {{ progress_summary.days_active }} active days</div>
+        </div>
+        
+        <div class="metric-item">
+            <div class="metric-header">
+                <span class="metric-label">Longest Streak</span>
+                <span class="metric-value">{{ progress_summary.longest_streak }} days</span>
+            </div>
+            <div class="metric-description">Your best consecutive work period</div>
+        </div>
+        
+        <div class="metric-item">
+            <div class="metric-header">
+                <span class="metric-label">On Track Status</span>
+                <span class="metric-value status-{{ 'success' if progress_summary.is_on_track else 'warning' }}">
+                    {{ '✅ On Track' if progress_summary.is_on_track else '⚠️ Behind Schedule' }}
+                </span>
+            </div>
+            <div class="metric-description">
+                {% if progress_summary.is_on_track %}
+                    You're making good progress toward your deadline
+                {% else %}
+                    Consider increasing your daily task completion rate
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if progress_summary.completion_prediction %}
+        <div class="metric-item">
+            <div class="metric-header">
+                <span class="metric-label">Predicted Completion</span>
+                <span class="metric-value">{{ progress_summary.completion_prediction[:10] }}</span>
+            </div>
+            <div class="metric-description">Based on current progress rate</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Milestones & Achievements -->
+    <div class="card">
+        <h3>🏆 Milestones & Achievements</h3>
+        
+        {% if progress_summary.milestones_achieved %}
+            <div class="milestones-list">
+                {% for milestone in progress_summary.milestones_achieved %}
+                <div class="milestone-item">
+                    <div class="milestone-header">
+                        <span class="milestone-icon">🎯</span>
+                        <div class="milestone-info">
+                            <div class="milestone-title">{{ milestone.description }}</div>
+                            <div class="milestone-date">{{ milestone.achievement_date[:10] }}</div>
+                        </div>
+                    </div>
+                    <div class="milestone-message">{{ milestone.celebration_message }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-milestones">
+                <div class="text-center" style="padding: 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🎯</div>
+                    <p>No milestones achieved yet</p>
+                    <p class="text-sm opacity-75">Keep working to unlock your first milestone!</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Next Milestone Preview -->
+        <div class="next-milestone">
+            <h4>Next Milestone</h4>
+            {% set next_threshold = 25 if progress_summary.progress_percentage < 25 else (50 if progress_summary.progress_percentage < 50 else (75 if progress_summary.progress_percentage < 75 else 100)) %}
+            {% if progress_summary.progress_percentage < 100 %}
+                <div class="milestone-preview">
+                    <div class="milestone-progress">
+                        <span>{{ next_threshold }}% Complete</span>
+                        <div class="mini-progress-bar">
+                            <div class="mini-progress-fill" style="width: {{ (progress_summary.progress_percentage / next_threshold * 100)|min(100) }}%"></div>
+                        </div>
+                    </div>
+                    <div class="milestone-tasks-needed">
+                        {% set tasks_needed = ((next_threshold - progress_summary.progress_percentage) / 100 * progress_summary.total_tasks)|round|int %}
+                        {{ tasks_needed }} more task{{ 's' if tasks_needed != 1 else '' }} to go!
+                    </div>
+                </div>
+            {% else %}
+                <div class="milestone-complete">
+                    <span class="success-message">🎉 All milestones achieved!</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Timeline Visualization -->
+<div class="card">
+    <h3>📅 Progress Timeline</h3>
+    <div class="timeline-info">
+        <div class="timeline-stats grid grid-3">
+            <div class="timeline-stat">
+                <div class="stat-label">Phase Started</div>
+                <div class="stat-value">{{ progress_summary.start_date }}</div>
+            </div>
+            <div class="timeline-stat">
+                <div class="stat-label">Days Active</div>
+                <div class="stat-value">{{ progress_summary.days_active }}</div>
+            </div>
+            <div class="timeline-stat">
+                <div class="stat-label">Deadline</div>
+                <div class="stat-value">{{ progress_summary.deadline }}</div>
+            </div>
+        </div>
+        
+        <div class="timeline-visual" style="margin-top: 2rem;">
+            <div class="timeline-bar">
+                <div class="timeline-progress" style="width: {{ progress_summary.progress_percentage }}%"></div>
+                <div class="timeline-marker timeline-start">Start</div>
+                <div class="timeline-marker timeline-current" style="left: {{ (progress_summary.days_active / (progress_summary.days_active + progress_summary.days_remaining) * 100)|min(100) }}%">Now</div>
+                <div class="timeline-marker timeline-end">Deadline</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.progress-overview {
+    gap: 1rem;
+}
+
+.progress-stat {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--gray-200);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.progress-bar-large {
+    width: 100%;
+    height: 20px;
+    background: var(--gray-200);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-fill-large {
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    border-radius: 10px;
+    transition: width 0.6s ease;
+}
+
+.progress-percentage {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.metric-item {
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.metric-value {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.metric-value.status-success {
+    color: var(--success-color);
+}
+
+.metric-value.status-warning {
+    color: var(--warning-color);
+}
+
+.metric-description {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.milestones-list {
+    margin-bottom: 1.5rem;
+}
+
+.milestone-item {
+    background: var(--gray-50);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.2s ease;
+}
+
+.milestone-item:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.milestone-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.milestone-icon {
+    font-size: 1.5rem;
+}
+
+.milestone-info {
+    flex: 1;
+}
+
+.milestone-title {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.milestone-date {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.milestone-message {
+    font-style: italic;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.next-milestone {
+    background: var(--primary-color);
+    color: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    margin-top: 1rem;
+}
+
+.next-milestone h4 {
+    margin: 0 0 1rem 0;
+    color: white;
+}
+
+.milestone-preview {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.milestone-progress {
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.milestone-tasks-needed {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.success-message {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.timeline-stats {
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.timeline-stat {
+    text-align: center;
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+}
+
+.timeline-visual {
+    position: relative;
+    height: 60px;
+}
+
+.timeline-bar {
+    position: relative;
+    height: 20px;
+    background: var(--gray-200);
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+.timeline-progress {
+    height: 100%;
+    background: linear-gradient(135deg, var(--success-color) 0%, var(--primary-color) 100%);
+    border-radius: 10px;
+    transition: width 0.6s ease;
+}
+
+.timeline-marker {
+    position: absolute;
+    top: -25px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    transform: translateX(-50%);
+}
+
+.timeline-start {
+    left: 0;
+}
+
+.timeline-end {
+    right: 0;
+    transform: translateX(50%);
+}
+
+.timeline-current {
+    color: var(--primary-color);
+}
+
+.timeline-current::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 20px;
+    background: var(--primary-color);
+    border-radius: 2px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .progress-overview {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .timeline-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .milestone-preview {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .milestone-tasks-needed {
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}

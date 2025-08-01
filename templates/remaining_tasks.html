@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Remaining Tasks - PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="flex justify-between items-center mb-4">
+        <h2>📋 Your Remaining Tasks{% if selected_phase %} - {{ selected_phase.phase_name }}{% endif %}</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+    
+    {% if student.is_multi_phase and user_phases %}
+    <div class="phase-filter" style="margin-bottom: 1.5rem;">
+        <label for="phase-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Filter by Phase:</label>
+        <div class="flex gap-2 items-center">
+            <div class="custom-select" style="min-width: 200px;">
+                <select id="phase-select" onchange="filterByPhase(this.value)">
+                    <option value="">All Phases</option>
+                    {% for phase in user_phases %}
+                        <option value="{{ phase.id }}" {% if phase_filter == phase.id %}selected{% endif %}>
+                            {{ get_phase_icon(phase.phase_type) }} {{ phase.phase_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if phase_filter %}
+                <a href="{{ url_for('remaining_tasks') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">
+                    Clear Filter
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="grid grid-3" style="margin-bottom: 2rem;">
+        <div style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
+            <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem;">{{ total_incomplete }}</div>
+            <div style="font-weight: 600; color: var(--gray-700);">Tasks Remaining</div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
+            <div style="font-size: 2rem; color: var(--success-color); margin-bottom: 0.5rem;">{{ "%.0f"|format(completion_rate) }}%</div>
+            <div style="font-weight: 600; color: var(--gray-700);">Complete</div>
+        </div>
+        <div style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
+            <div style="font-size: 2rem; color: var(--accent-color); margin-bottom: 0.5rem;">{{ overdue_tasks|length }}</div>
+            <div style="font-weight: 600; color: var(--gray-700);">Overdue</div>
+        </div>
+    </div>
+</div>
+
+{% if overdue_tasks %}
+<div class="card">
+    <h3 style="color: var(--error-color);">⚠️ Overdue Tasks ({{ overdue_tasks|length }})</h3>
+    <p class="text-sm opacity-75" style="margin-bottom: 1.5rem;">These tasks were scheduled for past dates but haven't been completed yet.</p>
+    
+    <div style="space-y: 1rem;">
+        {% for task in overdue_tasks %}
+            <div style="padding: 1.5rem; background: #fef2f2; border: 2px solid #fecaca; border-radius: var(--border-radius); margin-bottom: 1rem;">
+                <div class="flex justify-between items-start">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--error-color); margin-bottom: 0.5rem;">
+                            {{ task.task_description }}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm" style="color: var(--error-color);">
+                                📅 Was due: {{ task.date.strftime('%A, %B %d') }}
+                            </span>
+                            {% if student.is_multi_phase and hasattr(task, 'phase') %}
+                                <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 12px;">
+                                    {{ get_phase_icon(task.phase.phase_type) }} {{ task.phase.phase_name }}
+                                </span>
+                            {% endif %}
+                            <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--error-color); color: white; border-radius: 12px;">
+                                {{ task.day_intensity|title }} Day
+                            </span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('day_detail', date_str=task.date.strftime('%Y-%m-%d')) }}" 
+                       class="btn btn-secondary" style="margin-left: 1rem;">
+                        📝 Update
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if today_tasks %}
+<div class="card">
+    <h3 style="color: var(--primary-color);">🎯 Today's Tasks ({{ today_tasks|length }})</h3>
+    <p class="text-sm opacity-75" style="margin-bottom: 1.5rem;">Focus on these tasks today!</p>
+    
+    <div style="space-y: 1rem;">
+        {% for task in today_tasks %}
+            <div style="padding: 1.5rem; background: #eff6ff; border: 2px solid #bfdbfe; border-radius: var(--border-radius); margin-bottom: 1rem;">
+                <div class="flex justify-between items-start">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem;">
+                            {{ task.task_description }}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm" style="color: var(--primary-color);">
+                                📅 Due today
+                            </span>
+                            {% if student.is_multi_phase and hasattr(task, 'phase') %}
+                                <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--secondary-color); color: white; border-radius: 12px;">
+                                    {{ get_phase_icon(task.phase.phase_type) }} {{ task.phase.phase_name }}
+                                </span>
+                            {% endif %}
+                            <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 12px;">
+                                {{ task.day_intensity|title }} Day
+                            </span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('daily_checkin') }}" 
+                       class="btn" style="margin-left: 1rem;">
+                        ✅ Check In
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if upcoming_tasks %}
+<div class="card">
+    <h3 style="color: var(--secondary-color);">📅 Upcoming Tasks ({{ upcoming_tasks|length }})</h3>
+    <p class="text-sm opacity-75" style="margin-bottom: 1.5rem;">Your future scheduled tasks.</p>
+    
+    <div style="space-y: 1rem;">
+        {% for week_key, week_data in upcoming_weeks %}
+            <div style="margin-bottom: 2rem;">
+                <h4 style="color: var(--gray-600); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--gray-200);">
+                    Week of {{ week_data.week_start.strftime('%B %d') }}
+                </h4>
+                {% for task in week_data.tasks %}
+                    <div style="padding: 1rem; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--border-radius); margin-bottom: 0.75rem;">
+                        <div class="flex justify-between items-start">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 500; color: var(--gray-800); margin-bottom: 0.5rem;">
+                                    {{ task.task_description }}
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-sm opacity-75">
+                                        📅 {{ task.date.strftime('%A, %B %d') }}
+                                    </span>
+                                    {% if student.is_multi_phase and hasattr(task, 'phase') %}
+                                        <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--accent-color); color: white; border-radius: 12px;">
+                                            {{ get_phase_icon(task.phase.phase_type) }} {{ task.phase.phase_name }}
+                                        </span>
+                                    {% endif %}
+                                    <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--secondary-color); color: white; border-radius: 12px;">
+                                        {{ task.day_intensity|title }} Day
+                                    </span>
+                                </div>
+                            </div>
+                            <a href="{{ url_for('day_detail', date_str=task.date.strftime('%Y-%m-%d')) }}" 
+                               class="btn btn-secondary" style="margin-left: 1rem;">
+                                👁️ View
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if not overdue_tasks and not today_tasks and not upcoming_tasks %}
+<div class="card">
+    <div class="text-center" style="padding: 3rem;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+        <h3 style="color: var(--success-color); margin-bottom: 1rem;">All Tasks Complete!</h3>
+        <p class="opacity-75">Congratulations! You've completed all your scheduled literature review tasks.</p>
+        <a href="{{ url_for('dashboard') }}" class="btn" style="margin-top: 1rem;">
+            📊 View Progress
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <h3>💡 Task Management Tips</h3>
+    <div class="grid grid-2">
+        <div>
+            <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--error-color); margin-bottom: 1rem;">
+                <strong class="text-sm">Handle Overdue Tasks First:</strong>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Catch up on missed work to prevent falling further behind</p>
+            </div>
+            <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--primary-color);">
+                <strong class="text-sm">Focus on Today:</strong>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Complete today's tasks before moving to future work</p>
+            </div>
+        </div>
+        <div>
+            <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--secondary-color); margin-bottom: 1rem;">
+                <strong class="text-sm">Plan Ahead:</strong>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Review upcoming tasks to prepare materials and time</p>
+            </div>
+            <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--success-color);">
+                <strong class="text-sm">Stay Consistent:</strong>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Regular daily progress prevents overwhelming backlogs</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterByPhase(phaseId) {
+    if (phaseId) {
+        window.location.href = "{{ url_for('remaining_tasks') }}?phase=" + phaseId;
+    } else {
+        window.location.href = "{{ url_for('remaining_tasks') }}";
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Welcome to PaperPacer</h2>
+    <p>Your personal assistant for crafting outstanding literature reviews for your senior honors thesis.</p>
+    
+    <h3>How PaperPacer Works:</h3>
+    <ul>
+        <li><strong>Onboarding:</strong> Tell us about your project, deadlines, and work preferences</li>
+        <li><strong>Custom Schedule:</strong> We'll create a personalized daily schedule based on your availability</li>
+        <li><strong>Daily Check-ins:</strong> Log your progress each work day</li>
+        <li><strong>Adaptive Planning:</strong> We'll adjust your schedule based on your actual progress</li>
+    </ul>
+    
+    <p>Ready to get started? Let's set up your personalized literature review schedule!</p>
+    
+    <a href="{{ url_for('register') }}" class="btn">Get Started</a>
+    <p style="margin-top: 1rem; text-align: center;">
+        Already have an account? <a href="{{ url_for('login') }}" style="color: #667eea;">Log in here</a>
+    </p>
+</div>
+
+<div class="card">
+    <h3>Why Literature Reviews Matter</h3>
+    <p>A strong literature review is the foundation of your thesis. It demonstrates your understanding of existing research, identifies gaps in knowledge, and positions your work within the broader academic conversation.</p>
+    
+    <p>With PaperPacer, you'll break down this complex task into manageable daily goals, ensuring you stay on track and produce high-quality work.</p>
+</div>
+{% endblock %}

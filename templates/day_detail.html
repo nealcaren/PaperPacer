@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}{{ selected_date.strftime('%B %d, %Y') }} - PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="flex justify-between items-center mb-4">
+        <h2>📅 {{ selected_date.strftime('%A, %B %d, %Y') }}</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Calendar</a>
+    </div>
+    
+    {% if is_today %}
+        <div style="background: var(--primary-color); color: white; padding: 1rem; border-radius: var(--border-radius); margin-bottom: 2rem; text-align: center;">
+            <strong>🎯 Today's Focus</strong>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">This is today! You can mark tasks as completed below.</p>
+        </div>
+    {% elif selected_date < today and day_tasks|selectattr('completed', 'equalto', false)|list|length > 0 %}
+        <div style="background: var(--warning-color); color: white; padding: 1rem; border-radius: var(--border-radius); margin-bottom: 2rem; text-align: center;">
+            <strong>📝 Catch-Up Mode</strong>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Mark any work you completed on this day and add notes about your progress.</p>
+        </div>
+    {% endif %}
+    
+    <div class="grid grid-2">
+        <div>
+            <h3>📋 Scheduled Tasks</h3>
+            {% if day_tasks %}
+                <form action="{{ url_for('submit_progress') }}" method="POST" id="task-form">
+                    <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                    
+                    <div style="space-y: 1rem;">
+                        {% for task in day_tasks %}
+                            <div class="toggle-container {% if task.completed %}completed{% endif %}" id="task-container-{{ task.id }}">
+                                <div class="flex items-start gap-3" style="width: 100%;">
+                                    {% if is_today or (selected_date < today and not task.completed) %}
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="task_{{ task.id }}" name="completed_tasks" value="{{ task.id }}"
+                                                   {% if task.completed %}checked{% endif %}
+                                                   onchange="updateTaskContainer({{ task.id }})">
+                                            <span class="toggle-slider round"></span>
+                                        </label>
+                                    {% endif %}
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; margin-bottom: 0.5rem;">
+                                            {{ task.task_description }}
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs" style="padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.2); color: inherit; border-radius: 12px; border: 1px solid rgba(255,255,255,0.3);">
+                                                {{ task.day_intensity|title }} Day
+                                            </span>
+                                            {% if task.completed %}
+                                                <span style="font-weight: 600; font-size: 0.9rem;">✓ Completed</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% set has_incomplete_tasks = day_tasks|selectattr('completed', 'equalto', false)|list|length > 0 %}
+                    {% if is_today or (selected_date < today and has_incomplete_tasks) %}
+                        <div class="form-group" style="margin-top: 2rem;">
+                            <label for="notes">💭 Notes about {% if is_today %}today's{% else %}this day's{% endif %} work:</label>
+                            <textarea id="notes" name="notes" rows="4" 
+                                      placeholder="What did you accomplish? Any challenges? Insights from your reading?"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">
+                            {% if is_today %}
+                                ✨ Submit Today's Progress
+                            {% else %}
+                                📝 Update Progress for {{ selected_date.strftime('%B %d') }}
+                            {% endif %}
+                        </button>
+                    {% endif %}
+                </form>
+            {% else %}
+                <div class="text-center" style="padding: 2rem; background: var(--gray-50); border-radius: var(--border-radius);">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">📅</div>
+                    <p style="margin: 0; font-weight: 500;">No tasks scheduled for this day</p>
+                    <p class="text-sm opacity-75" style="margin: 0.5rem 0 0 0;">
+                        This might be a rest day or outside your working schedule.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div>
+            <h3>⚡ Day Settings</h3>
+            <div style="background: var(--gray-50); padding: 1.5rem; border-radius: var(--border-radius);">
+                <form method="POST" action="{{ url_for('update_day_intensity') }}">
+                    <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                    
+                    <label style="margin-bottom: 1rem; display: block;">Change day intensity:</label>
+                    
+                    {% set current_intensity = day_tasks[0].day_intensity if day_tasks else 'none' %}
+                    
+                    <div class="custom-select">
+                        <select name="intensity">
+                            <option value="none" {% if current_intensity == 'none' %}selected{% endif %}>
+                                No Work Day - Rest day, no tasks scheduled
+                            </option>
+                            <option value="light" {% if current_intensity == 'light' %}selected{% endif %}>
+                                Light Work Day - Regular workload (1 task)
+                            </option>
+                            <option value="heavy" {% if current_intensity == 'heavy' %}selected{% endif %}>
+                                Heavy Work Day - Double workload (2 tasks)
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-top: 1rem; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 4px solid var(--primary-color);">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div style="width: 12px; height: 12px; background: var(--gray-400); border-radius: 50%;"></div>
+                            <strong class="text-sm">No Work:</strong>
+                            <span class="text-sm opacity-75">Complete rest day</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <div style="width: 12px; height: 12px; background: var(--accent-color); border-radius: 50%;"></div>
+                            <strong class="text-sm">Light Day:</strong>
+                            <span class="text-sm opacity-75">1 task scheduled</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div style="width: 12px; height: 12px; background: var(--secondary-color); border-radius: 50%;"></div>
+                            <strong class="text-sm">Heavy Day:</strong>
+                            <span class="text-sm opacity-75">2 tasks scheduled</span>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-secondary" style="width: 100%; margin-top: 1rem;">
+                        🔄 Update Day Intensity
+                    </button>
+                </form>
+            </div>
+            
+            {% if selected_date > today %}
+                <div style="background: #fffbeb; border: 1px solid #fed7aa; color: #92400e; padding: 1rem; border-radius: var(--border-radius); margin-top: 1rem;">
+                    <strong>📅 Future Date</strong>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                        This date is in the future. You can adjust the intensity, but task completion will be available when the date arrives.
+                    </p>
+                </div>
+            {% elif selected_date < today %}
+                {% set has_incomplete_tasks = day_tasks|selectattr('completed', 'equalto', false)|list|length > 0 %}
+                <div style="background: {% if has_incomplete_tasks %}#fffbeb; border: 1px solid #fed7aa; color: #92400e{% else %}#f0fdf4; border: 1px solid #bbf7d0; color: #166534{% endif %}; padding: 1rem; border-radius: var(--border-radius); margin-top: 1rem;">
+                    <strong>📚 Past Date</strong>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                        {% if has_incomplete_tasks %}
+                            You can still mark incomplete tasks as completed and add notes about work you did on this day.
+                        {% else %}
+                            All tasks for this day are completed. You can still adjust intensity for schedule planning.
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function updateTaskContainer(taskId) {
+    const container = document.getElementById('task-container-' + taskId);
+    const checkbox = document.getElementById('task_' + taskId);
+    
+    if (checkbox.checked) {
+        container.classList.add('completed');
+    } else {
+        container.classList.remove('completed');
+    }
+}
+
+// Set today variable for template
+const today = new Date('{{ today.strftime('%Y-%m-%d') if today is defined else datetime.now().date().strftime('%Y-%m-%d') }}');
+</script>
+{% endblock %}

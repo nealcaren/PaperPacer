@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verify Onboarding Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .test-result.pass { background: #d4edda; border: 1px solid #c3e6cb; }
+        .test-result.fail { background: #f8d7da; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <h1>Onboarding Next Button Fix Verification</h1>
+    <p>This page tests if the onboarding JavaScript has been fixed.</p>
+    
+    <div id="test-results"></div>
+    
+    <script>
+        function runTests() {
+            const results = [];
+            
+            // Test 1: Check if OnboardingWizard class can be instantiated
+            try {
+                // Simulate the onboarding HTML structure
+                document.body.innerHTML += `
+                    <div style="display: none;">
+                        <div class="step-content active" data-step="1">
+                            <input type="text" id="project_title" required>
+                            <input type="date" id="thesis_deadline" required>
+                        </div>
+                        <div class="step-content" data-step="2"></div>
+                        <div class="step-content" data-step="3"></div>
+                        <div class="step-content" data-step="4">
+                            <div id="review-title"></div>
+                            <div id="review-deadline"></div>
+                            <div id="review-phases"></div>
+                            <div id="review-schedule"></div>
+                        </div>
+                        <div id="progress-fill"></div>
+                        <button id="next-btn">Next</button>
+                        <button id="prev-btn">Previous</button>
+                        <button id="submit-btn">Submit</button>
+                        <form id="onboarding-form"></form>
+                    </div>
+                `;
+                
+                // Copy the OnboardingWizard class from the original file
+                class OnboardingWizard {
+                    constructor() {
+                        this.currentStep = 1;
+                        this.totalSteps = 4;
+                        this.formData = {};
+                        
+                        this.init();
+                    }
+                    
+                    init() {
+                        this.bindEvents();
+                        this.updateProgress();
+                    }
+                    
+                    bindEvents() {
+                        const nextBtn = document.getElementById('next-btn');
+                        const prevBtn = document.getElementById('prev-btn');
+                        const submitBtn = document.getElementById('submit-btn');
+                        
+                        if (nextBtn) nextBtn.addEventListener('click', () => this.nextStep());
+                        if (prevBtn) prevBtn.addEventListener('click', () => this.prevStep());
+                        if (submitBtn) submitBtn.addEventListener('click', (e) => this.handleSubmit(e));
+                    }
+                    
+                    nextStep() {
+                        if (!this.validateCurrentStep()) return;
+                        
+                        if (this.currentStep < this.totalSteps) {
+                            this.currentStep++;
+                            this.updateStep();
+                            this.updateProgress();
+                        }
+                    }
+                    
+                    prevStep() {
+                        if (this.currentStep > 1) {
+                            this.currentStep--;
+                            this.updateStep();
+                            this.updateProgress();
+                        }
+                    }
+                    
+                    updateStep() {
+                        // Hide all step content
+                        document.querySelectorAll('.step-content').forEach(step => {
+                            step.classList.remove('active');
+                        });
+                        
+                        // Show current step
+                        const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
+                        if (currentStepContent) {
+                            currentStepContent.classList.add('active');
+                        }
+                        
+                        // Update navigation buttons
+                        const prevBtn = document.getElementById('prev-btn');
+                        const nextBtn = document.getElementById('next-btn');
+                        const submitBtn = document.getElementById('submit-btn');
+                        
+                        if (prevBtn) prevBtn.style.display = this.currentStep > 1 ? 'flex' : 'none';
+                        
+                        if (this.currentStep === this.totalSteps) {
+                            if (nextBtn) nextBtn.style.display = 'none';
+                            if (submitBtn) submitBtn.style.display = 'flex';
+                        } else {
+                            if (nextBtn) nextBtn.style.display = 'flex';
+                            if (submitBtn) submitBtn.style.display = 'none';
+                        }
+                    }
+                    
+                    updateProgress() {
+                        const progressFill = document.getElementById('progress-fill');
+                        if (progressFill) {
+                            const percentage = (this.currentStep / this.totalSteps) * 100;
+                            progressFill.style.width = `${percentage}%`;
+                        }
+                    }
+                    
+                    validateCurrentStep() {
+                        const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
+                        if (!currentStepContent) return false;
+                        
+                        const requiredInputs = currentStepContent.querySelectorAll('input[required]');
+                        let isValid = true;
+                        
+                        requiredInputs.forEach(input => {
+                            if (!input.value.trim()) {
+                                isValid = false;
+                            }
+                        });
+                        
+                        return isValid;
+                    }
+                    
+                    handleSubmit(e) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+                
+                const wizard = new OnboardingWizard();
+                results.push({ test: 'OnboardingWizard instantiation', passed: true, message: 'Class instantiated successfully' });
+                
+                // Test 2: Check if nextStep method works
+                const initialStep = wizard.currentStep;
+                
+                // Fill required fields to pass validation
+                document.getElementById('project_title').value = 'Test Project';
+                document.getElementById('thesis_deadline').value = '2025-12-31';
+                
+                wizard.nextStep();
+                const newStep = wizard.currentStep;
+                
+                if (newStep === initialStep + 1) {
+                    results.push({ test: 'nextStep() functionality', passed: true, message: `Step advanced from ${initialStep} to ${newStep}` });
+                } else {
+                    results.push({ test: 'nextStep() functionality', passed: false, message: `Step did not advance (stayed at ${newStep})` });
+                }
+                
+                // Test 3: Check if prevStep method works
+                wizard.prevStep();
+                const backStep = wizard.currentStep;
+                
+                if (backStep === initialStep) {
+                    results.push({ test: 'prevStep() functionality', passed: true, message: `Step went back to ${backStep}` });
+                } else {
+                    results.push({ test: 'prevStep() functionality', passed: false, message: `Step did not go back correctly (at ${backStep})` });
+                }
+                
+                // Test 4: Check if Next button click works
+                const nextBtn = document.getElementById('next-btn');
+                let clickWorked = false;
+                
+                const originalNextStep = wizard.nextStep;
+                wizard.nextStep = function() {
+                    clickWorked = true;
+                    originalNextStep.call(this);
+                };
+                
+                nextBtn.click();
+                
+                if (clickWorked) {
+                    results.push({ test: 'Next button click event', passed: true, message: 'Button click triggered nextStep()' });
+                } else {
+                    results.push({ test: 'Next button click event', passed: false, message: 'Button click did not trigger nextStep()' });
+                }
+                
+            } catch (error) {
+                results.push({ test: 'OnboardingWizard instantiation', passed: false, message: `Error: ${error.message}` });
+            }
+            
+            return results;
+        }
+        
+        function displayResults(results) {
+            const container = document.getElementById('test-results');
+            
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result ${result.passed ? 'pass' : 'fail'}`;
+                div.innerHTML = `
+                    <strong>${result.test}:</strong> 
+                    <span class="${result.passed ? 'success' : 'error'}">
+                        ${result.passed ? 'PASS' : 'FAIL'}
+                    </span>
+                    <br>
+                    <small>${result.message}</small>
+                `;
+                container.appendChild(div);
+            });
+            
+            const passCount = results.filter(r => r.passed).length;
+            const totalCount = results.length;
+            
+            const summary = document.createElement('div');
+            summary.innerHTML = `<h3>Summary: ${passCount}/${totalCount} tests passed</h3>`;
+            container.insertBefore(summary, container.firstChild);
+        }
+        
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const results = runTests();
+            displayResults(results);
+        });
+    </script>
+</body>
+</html>

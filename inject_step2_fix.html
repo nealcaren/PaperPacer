@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Step 2 Fix Injector</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .code-block { background: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px; overflow-x: auto; }
+        .button { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .button:hover { background: #2563eb; }
+        .warning { background: #fef3cd; border: 1px solid #fecaca; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .success { background: #d1f2eb; border: 1px solid #a7f3d0; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Step 2 Research Phases Fix</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This fix is for when you can't see the Research Phases content on Step 2 of the onboarding form.
+        </div>
+        
+        <div class="section">
+            <h2>Method 1: Browser Console Fix (Recommended)</h2>
+            <p>Copy and paste this code into your browser's console while on the onboarding page:</p>
+            
+            <div class="code-block" id="console-code">
+// Step 2 Research Phases Visibility Fix
+(function() {
+    console.log('🔧 Applying Step 2 visibility fix...');
+    
+    // Add CSS to ensure phases are visible
+    const style = document.createElement('style');
+    style.textContent = `
+        .step-content[data-step="2"].active {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        .phases-grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+            gap: 16px !important;
+            margin: 20px 0 !important;
+        }
+        .phase-toggle {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            border: 2px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            padding: 16px !important;
+            margin-bottom: 16px !important;
+            background: white !important;
+        }
+        .phase-toggle.active {
+            border-color: #3b82f6 !important;
+            background: #eff6ff !important;
+        }
+        .phase-card {
+            display: block !important;
+            cursor: pointer !important;
+        }
+        .phase-content h3 {
+            margin: 8px 0 !important;
+            font-size: 18px !important;
+            font-weight: 600 !important;
+        }
+        .phase-content p {
+            margin: 4px 0 !important;
+            color: #6b7280 !important;
+        }
+        .phase-icon {
+            font-size: 24px !important;
+            margin-bottom: 8px !important;
+            display: block !important;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Force Step 2 elements to be visible
+    const step2 = document.querySelector('[data-step="2"]');
+    if (step2) {
+        step2.style.display = 'block';
+        step2.style.visibility = 'visible';
+        step2.style.opacity = '1';
+    }
+    
+    const phasesGrid = document.querySelector('.phases-grid');
+    if (phasesGrid) {
+        phasesGrid.style.display = 'grid';
+        phasesGrid.style.visibility = 'visible';
+        phasesGrid.style.opacity = '1';
+    }
+    
+    const phaseToggles = document.querySelectorAll('.phase-toggle');
+    phaseToggles.forEach(toggle => {
+        toggle.style.display = 'block';
+        toggle.style.visibility = 'visible';
+        toggle.style.opacity = '1';
+    });
+    
+    console.log('✅ Step 2 visibility fix applied!');
+    console.log('If you still don\'t see content, try navigating to Step 2 manually.');
+})();
+            </div>
+            
+            <button class="button" onclick="copyToClipboard('console-code')">📋 Copy Console Code</button>
+        </div>
+        
+        <div class="section">
+            <h2>Method 2: Manual Navigation</h2>
+            <p>If the fix above doesn't work, try this code to manually navigate to Step 2:</p>
+            
+            <div class="code-block" id="navigation-code">
+// Manually go to Step 2
+document.querySelectorAll('.step-content').forEach(step => {
+    step.classList.remove('active');
+});
+
+const step2 = document.querySelector('[data-step="2"]');
+if (step2) {
+    step2.classList.add('active');
+    console.log('Manually activated Step 2');
+} else {
+    console.log('Could not find Step 2 element');
+}
+            </div>
+            
+            <button class="button" onclick="copyToClipboard('navigation-code')">📋 Copy Navigation Code</button>
+        </div>
+        
+        <div class="section">
+            <h2>Method 3: Debug Information</h2>
+            <p>Use this code to get detailed information about what's happening:</p>
+            
+            <div class="code-block" id="debug-code">
+// Debug Step 2 visibility
+console.log('=== STEP 2 DEBUG ===');
+const step2 = document.querySelector('[data-step="2"]');
+const phasesGrid = document.querySelector('.phases-grid');
+const phaseToggles = document.querySelectorAll('.phase-toggle');
+
+console.log('Step 2 element:', step2);
+console.log('Step 2 active:', step2?.classList.contains('active'));
+console.log('Phases grid:', phasesGrid);
+console.log('Phase toggles found:', phaseToggles.length);
+
+if (step2) {
+    const styles = window.getComputedStyle(step2);
+    console.log('Step 2 styles:', {
+        display: styles.display,
+        visibility: styles.visibility,
+        opacity: styles.opacity
+    });
+}
+
+if (phasesGrid) {
+    const styles = window.getComputedStyle(phasesGrid);
+    console.log('Phases grid styles:', {
+        display: styles.display,
+        visibility: styles.visibility,
+        opacity: styles.opacity,
+        height: styles.height
+    });
+}
+            </div>
+            
+            <button class="button" onclick="copyToClipboard('debug-code')">📋 Copy Debug Code</button>
+        </div>
+        
+        <div class="section">
+            <h2>📋 Instructions</h2>
+            <ol>
+                <li><strong>Open your onboarding page</strong> in the browser</li>
+                <li><strong>Open Developer Tools</strong> (F12 or right-click → Inspect)</li>
+                <li><strong>Go to the Console tab</strong></li>
+                <li><strong>Copy and paste Method 1 code</strong> and press Enter</li>
+                <li><strong>Navigate to Step 2</strong> (fill out Step 1 and click Next)</li>
+                <li><strong>Check if you can see the Research Phases</strong></li>
+            </ol>
+            
+            <div class="success">
+                <strong>✅ Expected Result:</strong> You should see 4 research phase options (Literature Review, Research Question Development, Methods Planning, IRB Proposal) with checkboxes and deadline fields.
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🆘 Still Not Working?</h2>
+            <p>If none of the above methods work:</p>
+            <ul>
+                <li>Check if you're logged in to your account</li>
+                <li>Try refreshing the page and applying the fix again</li>
+                <li>Check for JavaScript errors in the console</li>
+                <li>Try a different browser</li>
+                <li>Clear your browser cache</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success message
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ Copied!';
+                button.style.background = '#10b981';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#3b82f6';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        }
+    </script>
+</body>
+</html>

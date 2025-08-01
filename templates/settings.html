@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Update Your Settings</h2>
+    <p>Update your project details, deadlines, and work preferences. Your schedule will be regenerated to reflect any changes.</p>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <form action="{{ url_for('update_settings') }}" method="POST">
+        <div class="form-group">
+            <label for="project_title">Thesis/Project Title:</label>
+            <input type="text" id="project_title" name="project_title" required 
+                   value="{{ student.project_title }}"
+                   placeholder="e.g., The Impact of Social Media on Political Discourse">
+        </div>
+        
+        {% if student.is_multi_phase %}
+        <!-- Phase Management Section -->
+        <div class="form-group">
+            <h3>📋 Project Phases</h3>
+            <p class="text-sm opacity-75" style="margin-bottom: 1rem;">
+                Manage your research phases. You can add, remove, or modify phase deadlines.
+            </p>
+            
+            <div id="phases-container">
+                {% if student.project_phases %}
+                    {% for phase in student.project_phases|sort(attribute='order_index') %}
+                    <div class="phase-setting-item" data-phase-id="{{ phase.id }}">
+                        <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
+                            <div class="flex items-center gap-2">
+                                <span class="phase-icon">{{ get_phase_icon(phase.phase_type) }}</span>
+                                <strong>{{ phase.phase_name }}</strong>
+                            </div>
+                            <button type="button" onclick="removePhase({{ phase.id }})" 
+                                    class="btn btn-sm" style="background: var(--error-color); padding: 0.25rem 0.5rem;">
+                                Remove
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label class="text-sm">Phase Name:</label>
+                                <input type="text" name="phase_name_{{ phase.id }}" 
+                                       value="{{ phase.phase_name }}" class="form-input">
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-sm">Deadline:</label>
+                                <input type="date" name="phase_deadline_{{ phase.id }}" 
+                                       value="{{ phase.deadline.strftime('%Y-%m-%d') }}" class="form-input">
+                            </div>
+                        </div>
+                        <input type="hidden" name="existing_phase_ids" value="{{ phase.id }}">
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-sm opacity-75">No phases configured yet.</p>
+                {% endif %}
+            </div>
+            
+            <div style="margin-top: 1rem;">
+                <button type="button" onclick="addPhase()" class="btn btn-secondary">
+                    + Add Phase
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="form-group">
+            <label for="thesis_deadline">Final Thesis Deadline:</label>
+            <input type="date" id="thesis_deadline" name="thesis_deadline" required
+                   value="{{ student.thesis_deadline.strftime('%Y-%m-%d') if student.thesis_deadline }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="lit_review_deadline">Literature Review Deadline:</label>
+            <input type="date" id="lit_review_deadline" name="lit_review_deadline" required
+                   value="{{ student.lit_review_deadline.strftime('%Y-%m-%d') if student.lit_review_deadline }}">
+            <small style="color: #666;">When do you want to have your literature review completed?</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Set your work intensity for each day:</label>
+            <small style="color: #666; display: block; margin-bottom: 1rem;">
+                <strong>Light days:</strong> Regular workload | <strong>Heavy days:</strong> 2x tasks (more productive days)
+            </small>
+            
+            {% set current_work_prefs = student.work_days|from_json if student.work_days else {} %}
+            <div class="grid" style="gap: 0.75rem;">
+                {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                    {% set day_lower = day.lower() %}
+                    {% set current_intensity = current_work_prefs.get(day_lower, 'none') %}
+                    <div style="padding: 1rem; background: white; border: 2px solid var(--gray-200); border-radius: var(--border-radius); transition: all 0.2s ease;">
+                        <div class="flex items-center justify-between">
+                            <div style="min-width: 100px; font-weight: 600; color: var(--gray-700);">{{ day }}</div>
+                            <div class="custom-select" style="min-width: 150px;">
+                                <select name="{{ day_lower }}_intensity">
+                                    <option value="none" {% if current_intensity == 'none' %}selected{% endif %}>No Work</option>
+                                    <option value="light" {% if current_intensity == 'light' %}selected{% endif %}>Light Day</option>
+                                    <option value="heavy" {% if current_intensity == 'heavy' %}selected{% endif %}>Heavy Day</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <button type="submit" class="btn">Update Settings</button>
+        <a href="{{ url_for('dashboard') }}" 
+           style="margin-left: 1rem; color: #667eea; text-decoration: none;">← Back to Dashboard</a>
+    </form>
+</div>
+
+<div class="card">
+    <h3>⚠️ Important Note</h3>
+    <p><strong>Updating your settings will regenerate your entire schedule.</strong> Any incomplete tasks will be replaced with new ones based on your updated preferences and deadlines.</p>
+    <p>Completed tasks and your progress history will remain unchanged.</p>
+</div>
+
+<style>
+.phase-setting-item {
+    background: var(--gray-50);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.2s ease;
+}
+
+.phase-setting-item:hover {
+    border-color: var(--primary-color);
+}
+
+.phase-icon {
+    font-size: 1.25rem;
+}
+</style>
+
+<script>
+// Ensure at least one work day is selected
+document.querySelector('form').addEventListener('submit', function(e) {
+    const workDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const hasWorkDay = workDays.some(day => {
+        const intensity = document.querySelector(`select[name="${day}_intensity"]`).value;
+        return intensity === 'light' || intensity === 'heavy';
+    });
+    
+    if (!hasWorkDay) {
+        e.preventDefault();
+        alert('Please select at least one day with light or heavy work intensity.');
+    }
+});
+
+// Validate that lit review deadline is before thesis deadline
+document.getElementById('lit_review_deadline').addEventListener('change', function() {
+    const litReviewDate = new Date(this.value);
+    const thesisDate = new Date(document.getElementById('thesis_deadline').value);
+    
+    if (thesisDate && litReviewDate >= thesisDate) {
+        alert('Literature review deadline should be before your thesis deadline.');
+        this.value = '';
+    }
+});
+
+// Validate that dates are in the future
+document.getElementById('thesis_deadline').addEventListener('change', function() {
+    const selectedDate = new Date(this.value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate <= today) {
+        alert('Thesis deadline must be in the future.');
+        this.value = '';
+    }
+});
+
+document.getElementById('lit_review_deadline').addEventListener('change', function() {
+    const selectedDate = new Date(this.value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate <= today) {
+        alert('Literature review deadline must be in the future.');
+        this.value = '';
+    }
+});
+
+{% if student.is_multi_phase %}
+// Phase management functions
+let phaseCounter = 0;
+
+function addPhase() {
+    phaseCounter++;
+    const container = document.getElementById('phases-container');
+    
+    const phaseDiv = document.createElement('div');
+    phaseDiv.className = 'phase-setting-item';
+    phaseDiv.innerHTML = `
+        <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
+            <div class="flex items-center gap-2">
+                <span class="phase-icon">📋</span>
+                <strong>New Phase</strong>
+            </div>
+            <button type="button" onclick="removeNewPhase(this)" 
+                    class="btn btn-sm" style="background: var(--error-color); padding: 0.25rem 0.5rem;">
+                Remove
+            </button>
+        </div>
+        <div class="flex gap-2">
+            <div class="flex-1">
+                <label class="text-sm">Phase Name:</label>
+                <input type="text" name="new_phase_name_${phaseCounter}" 
+                       placeholder="Enter phase name" class="form-input" required>
+            </div>
+            <div class="flex-1">
+                <label class="text-sm">Phase Type:</label>
+                <select name="new_phase_type_${phaseCounter}" class="form-input" required>
+                    <option value="">Select type...</option>
+                    <option value="literature_review">Literature Review</option>
+                    <option value="research_question">Research Question</option>
+                    <option value="methods_planning">Methods Planning</option>
+                    <option value="irb_proposal">IRB Proposal</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <label class="text-sm">Deadline:</label>
+                <input type="date" name="new_phase_deadline_${phaseCounter}" 
+                       class="form-input" required>
+            </div>
+        </div>
+        <input type="hidden" name="new_phase_counter" value="${phaseCounter}">
+    `;
+    
+    container.appendChild(phaseDiv);
+}
+
+function removePhase(phaseId) {
+    if (confirm('Are you sure you want to remove this phase? This will delete all associated tasks.')) {
+        const phaseDiv = document.querySelector(`[data-phase-id="${phaseId}"]`);
+        if (phaseDiv) {
+            // Add hidden input to mark for deletion
+            const deleteInput = document.createElement('input');
+            deleteInput.type = 'hidden';
+            deleteInput.name = 'delete_phase_ids';
+            deleteInput.value = phaseId;
+            document.querySelector('form').appendChild(deleteInput);
+            
+            phaseDiv.remove();
+        }
+    }
+}
+
+function removeNewPhase(button) {
+    button.closest('.phase-setting-item').remove();
+}
+{% endif %}
+</script>
+{% endblock %}

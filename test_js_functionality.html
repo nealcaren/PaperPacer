@@ -1,0 +1,517 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JavaScript Test</title>
+</head>
+<body>
+    <div id="test-results"></div>
+    
+    <!-- Mock DOM elements -->
+    <div style="display: none;">
+        <form id="onboarding-form">
+            <div class="step-content active" data-step="1">
+                <input type="text" id="project_title" required>
+                <input type="date" id="thesis_deadline" required>
+            </div>
+            <div class="step-content" data-step="2">
+                <input type="checkbox" name="selected_phases" value="literature_review" checked>
+                <input type="date" name="literature_review_deadline" required>
+            </div>
+            <div class="step-content" data-step="3"></div>
+            <div class="step-content" data-step="4">
+                <div id="review-title"></div>
+                <div id="review-deadline"></div>
+                <div id="review-phases"></div>
+                <div id="review-schedule"></div>
+            </div>
+        </form>
+        
+        <div id="progress-fill"></div>
+        <button id="next-btn">Next</button>
+        <button id="prev-btn">Previous</button>
+        <button id="submit-btn">Submit</button>
+    </div>
+
+    <script>
+    // Test runner
+    function runTests() {
+        const results = document.getElementById('test-results');
+        
+        try {
+            // Test 1: Can we instantiate the class?
+            console.log('Test 1: Instantiating OnboardingWizard');
+            const wizard = new OnboardingWizard();
+            results.innerHTML += '<div>✅ OnboardingWizard instantiated successfully</div>';
+            
+            // Test 2: Does nextStep method exist?
+            if (typeof wizard.nextStep === 'function') {
+                results.innerHTML += '<div>✅ nextStep method exists</div>';
+            } else {
+                results.innerHTML += '<div>❌ nextStep method missing</div>';
+            }
+            
+            // Test 3: Does validateCurrentStep method exist?
+            if (typeof wizard.validateCurrentStep === 'function') {
+                results.innerHTML += '<div>✅ validateCurrentStep method exists</div>';
+            } else {
+                results.innerHTML += '<div>❌ validateCurrentStep method missing</div>';
+            }
+            
+            // Test 4: Can we call nextStep?
+            try {
+                // Fill required fields first
+                document.getElementById('project_title').value = 'Test Project';
+                document.getElementById('thesis_deadline').value = '2025-12-31';
+                
+                const initialStep = wizard.currentStep;
+                wizard.nextStep();
+                const newStep = wizard.currentStep;
+                
+                if (newStep > initialStep) {
+                    results.innerHTML += '<div>✅ nextStep() advances steps</div>';
+                } else {
+                    results.innerHTML += '<div>❌ nextStep() does not advance steps</div>';
+                }
+            } catch (e) {
+                results.innerHTML += '<div>❌ nextStep() threw error: ' + e.message + '</div>';
+            }
+            
+        } catch (e) {
+            results.innerHTML += '<div>❌ Failed to instantiate OnboardingWizard: ' + e.message + '</div>';
+            console.error('Error:', e);
+        }
+    }
+    
+    
+// Modern Onboarding JavaScript
+class OnboardingWizard {
+    constructor() {
+        this.currentStep = 1;
+        this.totalSteps = 4;
+        this.formData = {};
+        
+        this.init();
+        this.loadFromStorage();
+    }
+    
+    init() {
+        this.bindEvents();
+        this.updateProgress();
+        this.initPhaseToggles();
+        this.initPresets();
+        this.initAutoSave();
+    }
+    
+    bindEvents() {
+        // Navigation
+        document.getElementById('next-btn').addEventListener('click', () => this.nextStep());
+        document.getElementById('prev-btn').addEventListener('click', () => this.prevStep());
+        document.getElementById('submit-btn').addEventListener('click', (e) => this.handleSubmit(e));
+        
+        // Auto-suggest deadlines
+        document.getElementById('auto-suggest-deadlines').addEventListener('click', () => this.autoSuggestDeadlines());
+        
+        // Form inputs
+        document.getElementById('project_title').addEventListener('input', (e) => this.saveToStorage());
+        document.getElementById('thesis_deadline').addEventListener('change', (e) => this.saveToStorage());
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+    }
+    
+    initPhaseToggles() {
+        const phaseToggles = document.querySelectorAll('.phase-toggle');
+        
+        phaseToggles.forEach(toggle => {
+            const checkbox = toggle.querySelector('input[type="checkbox"]');
+            const card = toggle.querySelector('.phase-card');
+            
+            card.addEventListener('click', (e) => {
+                e.preventDefault();
+                checkbox.checked = !checkbox.checked;
+                this.updatePhaseToggle(toggle);
+                this.saveToStorage();
+            });
+            
+            checkbox.addEventListener('change', () => {
+                this.updatePhaseToggle(toggle);
+                this.saveToStorage();
+            });
+            
+            // Initialize state
+            this.updatePhaseToggle(toggle);
+        });
+    }
+    
+    updatePhaseToggle(toggle) {
+        const checkbox = toggle.querySelector('input[type="checkbox"]');
+        const deadline = toggle.querySelector('.phase-deadline');
+        const deadlineInput = deadline.querySelector('input[type="date"]');
+        
+        if (checkbox.checked) {
+            toggle.classList.add('active');
+            deadline.style.display = 'block';
+            deadlineInput.required = true;
+        } else {
+            toggle.classList.remove('active');
+            deadline.style.display = 'none';
+            deadlineInput.required = false;
+            deadlineInput.value = '';
+        }
+    }
+    
+    initPresets() {
+        const presetCards = document.querySelectorAll('.preset-card');
+        
+        presetCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove active from all cards
+                presetCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                
+                const preset = card.dataset.preset;
+                this.applyPreset(preset);
+                this.saveToStorage();
+            });
+        });
+    }
+    
+    applyPreset(preset) {
+        const presets = {
+            balanced: {
+                monday: 'light', tuesday: 'light', wednesday: 'light', 
+                thursday: 'light', friday: 'light', saturday: 'none', sunday: 'none'
+            },
+            intensive: {
+                monday: 'heavy', tuesday: 'none', wednesday: 'heavy', 
+                thursday: 'none', friday: 'heavy', saturday: 'none', sunday: 'none'
+            },
+            weekend: {
+                monday: 'none', tuesday: 'none', wednesday: 'none', 
+                thursday: 'none', friday: 'light', saturday: 'heavy', sunday: 'heavy'
+            }
+        };
+        
+        const schedule = presets[preset];
+        if (!schedule) return;
+        
+        Object.entries(schedule).forEach(([day, intensity]) => {
+            const radio = document.querySelector(`input[name="${day}_intensity"][value="${intensity}"]`);
+            if (radio) radio.checked = true;
+        });
+    }
+    
+    nextStep() {
+        console.log('nextStep() called - current step:', this.currentStep);
+        
+        if (!this.validateCurrentStep()) {
+            console.log('Validation failed for step:', this.currentStep);
+            return;
+        }
+        
+        if (this.currentStep < this.totalSteps) {
+            this.currentStep++;
+            console.log('Advancing to step:', this.currentStep);
+            this.updateStep();
+            this.updateProgress();
+            this.saveToStorage();
+        } else {
+            console.log('Already on last step:', this.currentStep);
+        }
+    }
+    
+    prevStep() {
+        if (this.currentStep > 1) {
+            this.currentStep--;
+            this.updateStep();
+            this.updateProgress();
+            this.saveToStorage();
+        }
+    }
+    
+    updateStep() {
+        // Hide all step content
+        document.querySelectorAll('.step-content').forEach(step => {
+            step.classList.remove('active');
+        });
+        
+        // Show current step
+        const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
+        if (currentStepContent) {
+            currentStepContent.classList.add('active');
+        }
+        
+        // Update step indicators
+        document.querySelectorAll('.progress-steps .step').forEach((step, index) => {
+            if (index + 1 <= this.currentStep) {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
+            }
+        });
+        
+        // Update navigation buttons
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        prevBtn.style.display = this.currentStep > 1 ? 'flex' : 'none';
+        
+        if (this.currentStep === this.totalSteps) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'flex';
+            this.updateReview();
+        } else {
+            nextBtn.style.display = 'flex';
+            submitBtn.style.display = 'none';
+        }
+    }
+    
+    updateProgress() {
+        const progressFill = document.getElementById('progress-fill');
+        const percentage = (this.currentStep / this.totalSteps) * 100;
+        progressFill.style.width = `${percentage}%`;
+    }
+    
+    validateCurrentStep() {
+        console.log('Validating step:', this.currentStep);
+        
+        const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
+        if (!currentStepContent) {
+            console.log('ERROR: No step content found for step:', this.currentStep);
+            return false;
+        }
+        
+        const requiredInputs = currentStepContent.querySelectorAll('input[required]');
+        let isValid = true;
+        
+        requiredInputs.forEach(input => {
+            if (!input.value.trim()) {
+                input.style.borderColor = '#ef4444';
+                isValid = false;
+                console.log('Required field empty:', input.name || input.id, 'value:', input.value);
+            } else {
+                input.style.borderColor = '#e5e7eb';
+                console.log('Required field valid:', input.name || input.id, 'value:', input.value);
+            }
+        });
+        
+        // Special validation for step 2 (phases)
+        if (this.currentStep === 2) {
+            const selectedPhases = document.querySelectorAll('input[name="selected_phases"]:checked');
+            console.log('Selected phases count:', selectedPhases.length);
+            
+            if (selectedPhases.length === 0) {
+                console.log('ERROR: No phases selected');
+                alert('Please select at least one research phase.');
+                return false;
+            }
+            
+            // Validate deadlines for selected phases
+            let deadlineValid = true;
+            selectedPhases.forEach(phase => {
+                const phaseValue = phase.value;
+                const deadlineInput = document.querySelector(`input[name="${phaseValue}_deadline"]`);
+                console.log('Checking deadline for phase:', phaseValue, 'value:', deadlineInput ? deadlineInput.value : 'input not found');
+                
+                if (!deadlineInput || !deadlineInput.value) {
+                    if (deadlineInput) deadlineInput.style.borderColor = '#ef4444';
+                    deadlineValid = false;
+                    console.log('ERROR: Missing deadline for phase:', phaseValue);
+                } else {
+                    deadlineInput.style.borderColor = '#e5e7eb';
+                }
+            });
+            
+            if (!deadlineValid) {
+                console.log('ERROR: Some phase deadlines are missing');
+                alert('Please set deadlines for all selected phases.');
+                return false;
+            }
+        }
+        
+        console.log('Validation result for step', this.currentStep, ':', isValid);
+        return isValid;
+    }
+    
+    autoSuggestDeadlines() {
+        const thesisDeadline = document.getElementById('thesis_deadline').value;
+        if (!thesisDeadline) {
+            alert('Please set your thesis deadline first.');
+            return;
+        }
+        
+        const thesisDate = new Date(thesisDeadline);
+        const selectedPhases = document.querySelectorAll('input[name="selected_phases"]:checked');
+        
+        if (selectedPhases.length === 0) {
+            alert('Please select your research phases first.');
+            return;
+        }
+        
+        // Calculate suggested deadlines working backwards from thesis deadline
+        const phaseDurations = {
+            'literature_review': 30, // 30 days
+            'research_question': 14, // 14 days  
+            'methods_planning': 21, // 21 days
+            'irb_proposal': 14 // 14 days
+        };
+        
+        let currentDate = new Date(thesisDate);
+        const phases = Array.from(selectedPhases).reverse(); // Work backwards
+        
+        phases.forEach(phase => {
+            const phaseValue = phase.value;
+            const duration = phaseDurations[phaseValue] || 14;
+            
+            currentDate.setDate(currentDate.getDate() - duration);
+            
+            const deadlineInput = document.querySelector(`input[name="${phaseValue}_deadline"]`);
+            if (deadlineInput) {
+                deadlineInput.value = currentDate.toISOString().split('T')[0];
+            }
+        });
+        
+        this.saveToStorage();
+    }
+    
+    updateReview() {
+        // Update project info
+        const title = document.getElementById('project_title').value;
+        const deadline = document.getElementById('thesis_deadline').value;
+        
+        document.getElementById('review-title').textContent = title || '-';
+        document.getElementById('review-deadline').textContent = deadline || '-';
+        
+        // Update phases
+        const selectedPhases = document.querySelectorAll('input[name="selected_phases"]:checked');
+        const reviewPhases = document.getElementById('review-phases');
+        reviewPhases.innerHTML = '';
+        
+        selectedPhases.forEach(phase => {
+            const phaseValue = phase.value;
+            const phaseName = this.getPhaseDisplayName(phaseValue);
+            const deadlineInput = document.querySelector(`input[name="${phaseValue}_deadline"]`);
+            const deadline = deadlineInput ? deadlineInput.value : '-';
+            
+            const phaseItem = document.createElement('div');
+            phaseItem.className = 'review-item';
+            phaseItem.innerHTML = `
+                <span class="review-label">${phaseName}:</span>
+                <span class="review-value">${deadline}</span>
+            `;
+            reviewPhases.appendChild(phaseItem);
+        });
+        
+        // Update schedule
+        const reviewSchedule = document.getElementById('review-schedule');
+        reviewSchedule.innerHTML = '';
+        
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        
+        days.forEach((day, index) => {
+            const selectedIntensity = document.querySelector(`input[name="${day}_intensity"]:checked`);
+            const intensity = selectedIntensity ? selectedIntensity.value : 'none';
+            
+            if (intensity !== 'none') {
+                const scheduleItem = document.createElement('div');
+                scheduleItem.className = 'review-item';
+                scheduleItem.innerHTML = `
+                    <span class="review-label">${dayNames[index]}:</span>
+                    <span class="review-value">${intensity.charAt(0).toUpperCase() + intensity.slice(1)}</span>
+                `;
+                reviewSchedule.appendChild(scheduleItem);
+            }
+        });
+    }
+    
+    getPhaseDisplayName(phaseType) {
+        const names = {
+            'literature_review': 'Literature Review',
+            'research_question': 'Research Question Development',
+            'methods_planning': 'Methods Planning',
+            'irb_proposal': 'IRB Proposal'
+        };
+        return names[phaseType] || phaseType;
+    }
+    
+    initAutoSave() {
+        setInterval(() => this.saveToStorage(), 5000); // Save every 5 seconds
+    }
+    
+    saveToStorage() {
+        const formData = new FormData(document.getElementById('onboarding-form'));
+        const data = {};
+        
+        for (let [key, value] of formData.entries()) {
+            if (data[key]) {
+                if (Array.isArray(data[key])) {
+                    data[key].push(value);
+                } else {
+                    data[key] = [data[key], value];
+                }
+            } else {
+                data[key] = value;
+            }
+        }
+        
+        data.currentStep = this.currentStep;
+        localStorage.setItem('paperpacer_onboarding', JSON.stringify(data));
+    }
+    
+    loadFromStorage() {
+        const saved = localStorage.getItem('paperpacer_onboarding');
+        if (!saved) return;
+        
+        try {
+            const data = JSON.parse(saved);
+            
+            // Restore form values
+            Object.entries(data).forEach(([key, value]) => {
+                if (key === 'currentStep') {
+                    this.currentStep = value;
+                    return;
+                }
+                
+                const input = document.querySelector(`[name="${key}"]`);
+                if (input) {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        if (Array.isArray(value)) {
+                            value.forEach(v => {
+                                const specificInput = document.querySelector(`[name="${key}"][value="${v}"]`);
+                                if (specificInput) specificInput.checked = true;
+                            });
+                        } else {
+                            const specificInput = document.querySelector(`[name="${key}"][value="${value}"]`);
+                            if (specificInput) specificInput.checked = true;
+                        }
+                    } else {
+                        input.value = value;
+                    }
+                }
+            });
+            
+            // Update UI
+            this.updateStep();
+            this.updateProgress();
+            this.initPhaseToggles();
+            
+        } catch (e) {
+            console.error('Failed to load saved data:', e);
+        }
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new OnboardingWizard();
+});
+
+    
+    // Run tests when page loads
+    document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

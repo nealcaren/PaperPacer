@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Next Button Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .step-content { display: none; padding: 20px; border: 1px solid #ccc; margin: 10px 0; }
+        .step-content.active { display: block; background: #f9f9f9; }
+        .btn-primary { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn-secondary { background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 200px; margin: 5px 0; }
+        label { display: block; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>Simple Next Button Test</h1>
+    <p>Current Step: <span id="current-step-display">1</span></p>
+    
+    <!-- Step 1 -->
+    <div class="step-content active" data-step="1">
+        <h2>Step 1: Basic Info</h2>
+        <label>Project Title:</label>
+        <input type="text" id="project_title" placeholder="Enter project title" required>
+        <label>Deadline:</label>
+        <input type="date" id="thesis_deadline" required>
+    </div>
+    
+    <!-- Step 2 -->
+    <div class="step-content" data-step="2">
+        <h2>Step 2: Phases</h2>
+        <p>Select your research phases:</p>
+        <label><input type="checkbox" name="phases" value="lit_review"> Literature Review</label>
+        <label><input type="checkbox" name="phases" value="methods"> Methods Planning</label>
+    </div>
+    
+    <!-- Step 3 -->
+    <div class="step-content" data-step="3">
+        <h2>Step 3: Final Review</h2>
+        <p>Review your selections and submit.</p>
+    </div>
+    
+    <!-- Navigation -->
+    <div class="step-navigation">
+        <button type="button" class="btn-secondary" id="prev-btn" style="display: none;">Previous</button>
+        <button type="button" class="btn-primary" id="next-btn">Next</button>
+        <button type="button" class="btn-primary" id="submit-btn" style="display: none;">Submit</button>
+    </div>
+    
+    <div id="debug" style="margin-top: 20px; padding: 10px; background: #f0f0f0;">
+        <h3>Debug Info:</h3>
+        <div id="debug-log"></div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 3;
+        
+        function log(message) {
+            const debugLog = document.getElementById('debug-log');
+            debugLog.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+            console.log(message);
+        }
+        
+        function updateStepDisplay() {
+            document.getElementById('current-step-display').textContent = currentStep;
+        }
+        
+        function showStep(stepNumber) {
+            log(`Showing step ${stepNumber}`);
+            
+            // Hide all steps
+            document.querySelectorAll('.step-content').forEach(step => {
+                step.classList.remove('active');
+            });
+            
+            // Show current step
+            const targetStep = document.querySelector(`[data-step="${stepNumber}"]`);
+            if (targetStep) {
+                targetStep.classList.add('active');
+                log(`Successfully activated step ${stepNumber}`);
+            } else {
+                log(`ERROR: Could not find step ${stepNumber}`);
+            }
+            
+            // Update navigation buttons
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            prevBtn.style.display = stepNumber > 1 ? 'inline-block' : 'none';
+            
+            if (stepNumber === totalSteps) {
+                nextBtn.style.display = 'none';
+                submitBtn.style.display = 'inline-block';
+            } else {
+                nextBtn.style.display = 'inline-block';
+                submitBtn.style.display = 'none';
+            }
+            
+            updateStepDisplay();
+        }
+        
+        function validateStep(stepNumber) {
+            log(`Validating step ${stepNumber}`);
+            
+            if (stepNumber === 1) {
+                const title = document.getElementById('project_title').value.trim();
+                const deadline = document.getElementById('thesis_deadline').value;
+                
+                if (!title) {
+                    alert('Please enter a project title');
+                    return false;
+                }
+                if (!deadline) {
+                    alert('Please select a deadline');
+                    return false;
+                }
+            }
+            
+            if (stepNumber === 2) {
+                const selectedPhases = document.querySelectorAll('input[name="phases"]:checked');
+                if (selectedPhases.length === 0) {
+                    alert('Please select at least one phase');
+                    return false;
+                }
+            }
+            
+            log(`Step ${stepNumber} validation passed`);
+            return true;
+        }
+        
+        function nextStep() {
+            log(`Next button clicked. Current step: ${currentStep}`);
+            
+            if (!validateStep(currentStep)) {
+                log('Validation failed, staying on current step');
+                return;
+            }
+            
+            if (currentStep < totalSteps) {
+                currentStep++;
+                showStep(currentStep);
+                log(`Advanced to step ${currentStep}`);
+            }
+        }
+        
+        function prevStep() {
+            log(`Previous button clicked. Current step: ${currentStep}`);
+            
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+                log(`Went back to step ${currentStep}`);
+            }
+        }
+        
+        function submitForm() {
+            log('Submit button clicked');
+            if (validateStep(currentStep)) {
+                alert('Form would be submitted now!');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded, setting up event listeners');
+            
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            if (nextBtn) {
+                nextBtn.addEventListener('click', nextStep);
+                log('Next button listener added');
+            } else {
+                log('ERROR: Next button not found');
+            }
+            
+            if (prevBtn) {
+                prevBtn.addEventListener('click', prevStep);
+                log('Previous button listener added');
+            }
+            
+            if (submitBtn) {
+                submitBtn.addEventListener('click', submitForm);
+                log('Submit button listener added');
+            }
+            
+            // Initialize display
+            showStep(currentStep);
+            log('Initialization complete');
+        });
+        
+        log('Script loaded');
+    </script>
+</body>
+</html>

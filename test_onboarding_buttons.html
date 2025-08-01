@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding Button Test</title>
+    <link rel="stylesheet" href="static/css/modern.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        
+        .button-test {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            align-items: center;
+        }
+        
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Onboarding Button Test</h1>
+        <p>Testing the onboarding button styles and functionality</p>
+        
+        <!-- Test 1: Button Styles -->
+        <div class="test-section">
+            <h2>1. Button Styling Test</h2>
+            <p>Testing if the buttons have the correct styles from modern.css</p>
+            
+            <div class="button-test">
+                <button type="button" class="btn-primary">Primary Button</button>
+                <span class="status" id="primary-style-status">Checking...</span>
+            </div>
+            
+            <div class="button-test">
+                <button type="button" class="btn-secondary">Secondary Button</button>
+                <span class="status" id="secondary-style-status">Checking...</span>
+            </div>
+            
+            <div class="step-navigation" style="margin-top: 20px;">
+                <button type="button" class="btn-secondary" id="test-prev-btn">
+                    ← Previous
+                </button>
+                <button type="button" class="btn-primary" id="test-next-btn">
+                    Next →
+                </button>
+            </div>
+            <span class="status" id="navigation-style-status">Checking navigation styles...</span>
+        </div>
+        
+        <!-- Test 2: JavaScript Functionality -->
+        <div class="test-section">
+            <h2>2. JavaScript Functionality Test</h2>
+            <p>Testing if the button click handlers work correctly</p>
+            
+            <div class="button-test">
+                <button type="button" class="btn-primary" id="js-test-btn">Click Me!</button>
+                <span class="status" id="js-test-status">Ready</span>
+            </div>
+            
+            <div id="click-log" style="margin-top: 15px; padding: 10px; background: #f9fafb; border-radius: 4px; font-family: monospace; font-size: 12px;">
+                Click log will appear here...
+            </div>
+        </div>
+        
+        <!-- Test 3: Onboarding Simulation -->
+        <div class="test-section">
+            <h2>3. Onboarding Step Simulation</h2>
+            <p>Simulating the onboarding step navigation</p>
+            
+            <div style="margin: 20px 0;">
+                <div class="progress-bar" style="width: 100%; height: 6px; background: #e5e7eb; border-radius: 3px; margin-bottom: 20px;">
+                    <div class="progress-fill" id="sim-progress" style="height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 25%; transition: width 0.3s ease; border-radius: 3px;"></div>
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <span id="step-indicator">Step 1 of 4</span>
+                </div>
+                
+                <div class="step-navigation">
+                    <button type="button" class="btn-secondary" id="sim-prev-btn" style="display: none;">
+                        ← Previous
+                    </button>
+                    <button type="button" class="btn-primary" id="sim-next-btn">
+                        Next →
+                    </button>
+                    <button type="button" class="btn-primary" id="sim-submit-btn" style="display: none;">
+                        ✓ Complete
+                    </button>
+                </div>
+            </div>
+            
+            <div id="simulation-log" style="margin-top: 15px; padding: 10px; background: #f0fdf4; border-radius: 4px; font-family: monospace; font-size: 12px;">
+                Simulation ready...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test 1: Check button styles
+        function checkButtonStyles() {
+            const primaryBtn = document.querySelector('.btn-primary');
+            const secondaryBtn = document.querySelector('.btn-secondary');
+            const navSection = document.querySelector('.step-navigation');
+            
+            // Check if styles are applied
+            const primaryStyles = window.getComputedStyle(primaryBtn);
+            const secondaryStyles = window.getComputedStyle(secondaryBtn);
+            const navStyles = window.getComputedStyle(navSection);
+            
+            // Primary button check
+            const primaryStatus = document.getElementById('primary-style-status');
+            if (primaryStyles.background.includes('gradient') || primaryStyles.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                primaryStatus.textContent = '✅ Styled';
+                primaryStatus.className = 'status success';
+            } else {
+                primaryStatus.textContent = '❌ No styles';
+                primaryStatus.className = 'status error';
+            }
+            
+            // Secondary button check
+            const secondaryStatus = document.getElementById('secondary-style-status');
+            if (secondaryStyles.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                secondaryStatus.textContent = '✅ Styled';
+                secondaryStatus.className = 'status success';
+            } else {
+                secondaryStatus.textContent = '❌ No styles';
+                secondaryStatus.className = 'status error';
+            }
+            
+            // Navigation check
+            const navStatus = document.getElementById('navigation-style-status');
+            if (navStyles.display === 'flex') {
+                navStatus.textContent = '✅ Navigation styled';
+                navStatus.className = 'status success';
+            } else {
+                navStatus.textContent = '❌ Navigation not styled';
+                navStatus.className = 'status error';
+            }
+        }
+        
+        // Test 2: JavaScript functionality
+        function setupJSTest() {
+            const testBtn = document.getElementById('js-test-btn');
+            const status = document.getElementById('js-test-status');
+            const log = document.getElementById('click-log');
+            
+            let clickCount = 0;
+            
+            testBtn.addEventListener('click', () => {
+                clickCount++;
+                status.textContent = `✅ Clicked ${clickCount} times`;
+                status.className = 'status success';
+                
+                const timestamp = new Date().toLocaleTimeString();
+                log.innerHTML += `[${timestamp}] Button clicked (count: ${clickCount})<br>`;
+                log.scrollTop = log.scrollHeight;
+            });
+        }
+        
+        // Test 3: Onboarding simulation
+        function setupOnboardingSimulation() {
+            let currentStep = 1;
+            const totalSteps = 4;
+            
+            const prevBtn = document.getElementById('sim-prev-btn');
+            const nextBtn = document.getElementById('sim-next-btn');
+            const submitBtn = document.getElementById('sim-submit-btn');
+            const progress = document.getElementById('sim-progress');
+            const indicator = document.getElementById('step-indicator');
+            const log = document.getElementById('simulation-log');
+            
+            function updateStep() {
+                // Update progress bar
+                const percentage = (currentStep / totalSteps) * 100;
+                progress.style.width = `${percentage}%`;
+                
+                // Update indicator
+                indicator.textContent = `Step ${currentStep} of ${totalSteps}`;
+                
+                // Update buttons
+                prevBtn.style.display = currentStep > 1 ? 'flex' : 'none';
+                
+                if (currentStep === totalSteps) {
+                    nextBtn.style.display = 'none';
+                    submitBtn.style.display = 'flex';
+                } else {
+                    nextBtn.style.display = 'flex';
+                    submitBtn.style.display = 'none';
+                }
+                
+                // Log
+                const timestamp = new Date().toLocaleTimeString();
+                log.innerHTML += `[${timestamp}] Moved to step ${currentStep}<br>`;
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            nextBtn.addEventListener('click', () => {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    updateStep();
+                }
+            });
+            
+            prevBtn.addEventListener('click', () => {
+                if (currentStep > 1) {
+                    currentStep--;
+                    updateStep();
+                }
+            });
+            
+            submitBtn.addEventListener('click', () => {
+                const timestamp = new Date().toLocaleTimeString();
+                log.innerHTML += `[${timestamp}] 🎉 Onboarding completed!<br>`;
+                log.scrollTop = log.scrollHeight;
+                
+                // Reset
+                setTimeout(() => {
+                    currentStep = 1;
+                    updateStep();
+                    log.innerHTML += `[${new Date().toLocaleTimeString()}] Reset to step 1<br>`;
+                }, 2000);
+            });
+        }
+        
+        // Initialize tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            checkButtonStyles();
+            setupJSTest();
+            setupOnboardingSimulation();
+            
+            console.log('🧪 Onboarding button tests initialized');
+        });
+    </script>
+</body>
+</html>

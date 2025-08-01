@@ -1,0 +1,706 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - PaperPacer{% endblock %}
+
+{% block content %}
+<!-- Phase Navigation -->
+{% if student.is_multi_phase and student.project_phases %}
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div class="phase-navigation">
+        <h3 style="margin-bottom: 1rem;">📋 Research Phases</h3>
+        <div class="phase-tabs">
+            {% for phase in student.project_phases|sort(attribute='order_index') %}
+                {% set phase_progress = get_phase_progress(phase.id) %}
+                <div class="phase-tab {% if loop.first %}active{% endif %}" data-phase="{{ phase.id }}">
+                    <div class="phase-tab-header">
+                        <span class="phase-icon">{{ get_phase_icon(phase.phase_type) }}</span>
+                        <span class="phase-name">{{ phase.phase_name }}</span>
+                        <span class="phase-progress">{{ phase_progress.progress_percentage }}%</span>
+                    </div>
+                    <div class="phase-tab-details">
+                        <div class="phase-deadline">Due: {{ phase.deadline.strftime('%b %d, %Y') }}</div>
+                        <div class="phase-tasks">{{ phase_progress.completed_tasks }}/{{ phase_progress.total_tasks }} tasks</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2>👋 Welcome back, {{ student.name }}!</h2>
+        <div style="margin-bottom: 1.5rem;">
+            <p><strong>Project:</strong> {{ student.project_title }}</p>
+            
+            {% if student.is_multi_phase and student.project_phases %}
+                <!-- Multi-phase project info -->
+                {% set next_deadline = get_next_deadline(student.project_phases) %}
+                {% if next_deadline %}
+                    <p><strong>Next Deadline:</strong> 
+                        <span class="font-semibold" style="color: var(--primary-color);">
+                            {{ next_deadline.phase_name }} - {{ next_deadline.deadline.strftime('%B %d, %Y') }}
+                        </span>
+                    </p>
+                    
+                    {% set today = today if today is defined else student.created_at.date() %}
+                    {% set days_remaining = (next_deadline.deadline - today).days %}
+                    <p><strong>Days Remaining:</strong> 
+                        <span class="font-semibold {% if days_remaining < 7 %}style='color: var(--error-color);'{% elif days_remaining < 14 %}style='color: var(--warning-color);'{% else %}style='color: var(--success-color);'{% endif %}">
+                            {{ days_remaining }} days
+                        </span>
+                    </p>
+                {% endif %}
+            {% else %}
+                <!-- Legacy single-phase project info -->
+                <p><strong>Literature Review Deadline:</strong> 
+                    <span class="font-semibold" style="color: var(--primary-color);">
+                        {{ student.lit_review_deadline.strftime('%B %d, %Y') }}
+                    </span>
+                </p>
+                
+                {% set today = today if today is defined else student.created_at.date() %}
+                {% set days_remaining = (student.lit_review_deadline - today).days %}
+                <p><strong>Days Remaining:</strong> 
+                    <span class="font-semibold {% if days_remaining < 7 %}style='color: var(--error-color);'{% elif days_remaining < 14 %}style='color: var(--warning-color);'{% else %}style='color: var(--success-color);'{% endif %}">
+                        {{ days_remaining }} days
+                    </span>
+                </p>
+            {% endif %}
+        </div>
+        
+        <div class="flex gap-2" style="margin-top: 1rem;">
+            <a href="{{ url_for('daily_checkin') }}" class="btn" style="flex: 1;">📝 Today's Check-in</a>
+            <a href="{{ url_for('remaining_tasks') }}" class="btn btn-secondary" style="flex: 1;">📋 All Tasks</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>📊 Progress Overview</h3>
+        {% if student.is_multi_phase and student.project_phases %}
+            <!-- Multi-phase progress -->
+            {% set total_tasks = get_total_task_count(student.id) %}
+            {% set completed_tasks = get_completed_task_count(student.id) %}
+            {% if total_tasks > 0 %}
+                {% set progress_percent = (completed_tasks / total_tasks * 100)|round %}
+                <div style="margin-bottom: 1rem;">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-sm opacity-75">Overall Progress</span>
+                        <span class="font-semibold">{{ completed_tasks }}/{{ total_tasks }} tasks</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ progress_percent }}%"></div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <span class="font-semibold" style="font-size: 1.25rem; color: var(--primary-color);">{{ progress_percent }}% Complete</span>
+                    </div>
+                </div>
+                
+                <!-- Phase-specific progress -->
+                <div class="phase-progress-list">
+                    {% for phase in student.project_phases|sort(attribute='order_index') %}
+                        {% set phase_progress = get_phase_progress(phase.id) %}
+                        <div class="phase-progress-item">
+                            <div class="flex justify-between items-center">
+                                <span class="phase-progress-name">{{ get_phase_icon(phase.phase_type) }} {{ phase.phase_name }}</span>
+                                <span class="phase-progress-percent">{{ phase_progress.progress_percentage }}%</span>
+                            </div>
+                            <div class="mini-progress-bar">
+                                <div class="mini-progress-fill" style="width: {{ phase_progress.progress_percentage }}%"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-center opacity-75">Your schedule is being prepared...</p>
+            {% endif %}
+        {% else %}
+            <!-- Legacy single-phase progress -->
+            {% set total_tasks = student.schedule_items|length %}
+            {% set completed_tasks = student.schedule_items|selectattr('completed')|list|length %}
+            {% if total_tasks > 0 %}
+                {% set progress_percent = (completed_tasks / total_tasks * 100)|round %}
+                <div style="margin-bottom: 1rem;">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-sm opacity-75">Progress</span>
+                        <span class="font-semibold">{{ completed_tasks }}/{{ total_tasks }} tasks</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ progress_percent }}%"></div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <span class="font-semibold" style="font-size: 1.25rem; color: var(--primary-color);">{{ progress_percent }}% Complete</span>
+                    </div>
+                </div>
+            {% else %}
+                <p class="text-center opacity-75">Your schedule is being prepared...</p>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="flex justify-between items-center mb-4">
+        <h3>📅 Your Schedule Calendar</h3>
+        {% if student.is_multi_phase and student.project_phases %}
+        <div class="calendar-phase-filter">
+            <div class="custom-select" style="min-width: 180px;">
+                <select id="calendar-phase-filter" onchange="filterCalendarByPhase(this.value)">
+                    <option value="">All Phases</option>
+                    {% for phase in student.project_phases|sort(attribute='order_index') %}
+                        <option value="{{ phase.id }}">
+                            {{ get_phase_icon(phase.phase_type) }} {{ phase.phase_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <div id="calendar-container">
+        <!-- Calendar will be generated by JavaScript -->
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h3>📈 Recent Activity</h3>
+        {% if student.progress_logs %}
+            <div style="space-y: 1rem;">
+                {% for log in student.progress_logs[-5:] %}
+                    <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); margin-bottom: 0.75rem;">
+                        <div class="flex justify-between items-center mb-2">
+                            <strong class="text-sm" style="color: var(--primary-color);">{{ log.date.strftime('%B %d') }}</strong>
+                            {% set completed_count = (log.tasks_completed|from_json)|length if log.tasks_completed else 0 %}
+                            <span class="text-xs opacity-75">{{ completed_count }} task{% if completed_count != 1 %}s{% endif %}</span>
+                        </div>
+                        {% if log.notes %}
+                            <p class="text-sm opacity-75" style="margin: 0; font-style: italic;">{{ log.notes }}</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center" style="padding: 1.5rem;">
+                <p class="opacity-75">No progress logged yet.</p>
+                <p class="text-sm">Start with your first check-in to track your progress!</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>💡 Literature Review Tips</h3>
+        <div style="space-y: 0.75rem;">
+            <div style="padding: 0.75rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--primary-color);">
+                <strong class="text-sm">Stay Organized:</strong>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Keep detailed notes on each source you read</p>
+            </div>
+            <div style="padding: 0.75rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--secondary-color);">
+                <strong class="text-sm">Look for Patterns:</strong>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Identify common themes and debates in your field</p>
+            </div>
+            <div style="padding: 0.75rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--accent-color);">
+                <strong class="text-sm">Be Critical:</strong>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Don't just summarize - analyze and synthesize</p>
+            </div>
+            <div style="padding: 0.75rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--success-color);">
+                <strong class="text-sm">Track Citations:</strong>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Use a reference manager like Zotero or Mendeley</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Phase Navigation Styles */
+.phase-navigation {
+    margin-bottom: 1rem;
+}
+
+.phase-tabs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.phase-tab {
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.phase-tab:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.phase-tab.active {
+    border-color: var(--primary-color);
+    background: var(--primary-color-light, #f0f4ff);
+}
+
+.phase-tab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.phase-icon {
+    font-size: 1.25rem;
+    margin-right: 0.5rem;
+}
+
+.phase-name {
+    font-weight: 600;
+    color: var(--gray-800);
+    flex: 1;
+}
+
+.phase-progress {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+}
+
+.phase-tab-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.phase-deadline {
+    font-weight: 500;
+}
+
+.phase-tasks {
+    opacity: 0.8;
+}
+
+/* Progress Styles */
+.phase-progress-list {
+    margin-top: 1rem;
+    space-y: 0.75rem;
+}
+
+.phase-progress-item {
+    margin-bottom: 0.75rem;
+}
+
+.phase-progress-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.phase-progress-percent {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.mini-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.25rem;
+}
+
+.mini-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .phase-tabs {
+        grid-template-columns: 1fr;
+    }
+    
+    .phase-tab {
+        padding: 0.75rem;
+    }
+    
+    .phase-tab-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .phase-tab-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: var(--gray-200);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.calendar-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: var(--gray-200);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    overflow: hidden;
+    margin-bottom: 1px;
+}
+
+.calendar-day-header {
+    background: var(--gray-600);
+    color: white;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.calendar-day {
+    background: white;
+    min-height: 80px;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-day:hover {
+    background: var(--gray-50);
+    transform: scale(1.02);
+    z-index: 10;
+    box-shadow: var(--shadow-lg);
+}
+
+.calendar-day.other-month {
+    background: var(--gray-100);
+    opacity: 0.3;
+    cursor: default;
+}
+
+.calendar-day.other-month:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.calendar-day.today {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+
+.calendar-day.today:hover {
+    background: var(--primary-dark);
+}
+
+.calendar-day.no-work {
+    background: var(--gray-100);
+}
+
+.calendar-day.light-work {
+    background: #e0f2fe;
+    border-left: 4px solid var(--accent-color);
+}
+
+.calendar-day.heavy-work {
+    background: #f3e5f5;
+    border-left: 4px solid var(--secondary-color);
+}
+
+.calendar-day.completed {
+    background: #e8f5e8;
+    border-left: 4px solid var(--success-color);
+}
+
+.calendar-day.partial-complete {
+    background: #fff8e1;
+    border-left: 4px solid var(--warning-color);
+}
+
+.calendar-day-number {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.calendar-day-tasks {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    line-height: 1.2;
+}
+
+.calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.calendar-nav button {
+    background: var(--gray-100);
+    border: 2px solid var(--gray-200);
+    color: var(--gray-700);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-nav button:hover {
+    background: var(--gray-200);
+}
+
+.calendar-month-year {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--gray-800);
+}
+
+@media (max-width: 768px) {
+    .calendar-day {
+        min-height: 60px;
+        padding: 0.25rem;
+    }
+    
+    .calendar-day-number {
+        font-size: 0.8rem;
+    }
+    
+    .calendar-day-tasks {
+        font-size: 0.6rem;
+    }
+    
+    .calendar-day-header {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.7rem;
+    }
+}
+</style>
+
+<script>
+// Calendar data from server - aggregate tasks by date
+const scheduleData = {};
+
+{% if student.is_multi_phase %}
+    // Multi-phase data - get all tasks for this student
+    {% for phase in student.project_phases %}
+        {% for task in phase.tasks %}
+            const dateKey_{{ phase.id }}_{{ loop.index }} = "{{ task.date.strftime('%Y-%m-%d') }}";
+            if (!scheduleData[dateKey_{{ phase.id }}_{{ loop.index }}]) {
+                scheduleData[dateKey_{{ phase.id }}_{{ loop.index }}] = {
+                    intensity: "{{ task.day_intensity }}",
+                    completed: false,
+                    tasks: [],
+                    taskCount: 0,
+                    completedCount: 0,
+                    phases: []
+                };
+            }
+            
+            scheduleData[dateKey_{{ phase.id }}_{{ loop.index }}].tasks.push("{{ task.task_description|replace('"', '\\"') }}");
+            scheduleData[dateKey_{{ phase.id }}_{{ loop.index }}].taskCount++;
+            
+            if (!scheduleData[dateKey_{{ phase.id }}_{{ loop.index }}].phases.includes("{{ phase.phase_name }}")) {
+                scheduleData[dateKey_{{ phase.id }}_{{ loop.index }}].phases.push("{{ phase.phase_name }}");
+            }
+            
+            if ({{ task.completed|lower }}) {
+                scheduleData[dateKey_{{ phase.id }}_{{ loop.index }}].completedCount++;
+            }
+        {% endfor %}
+    {% endfor %}
+    
+    // Calculate completion status
+    Object.keys(scheduleData).forEach(dateKey => {
+        scheduleData[dateKey].completed = scheduleData[dateKey].completedCount === scheduleData[dateKey].taskCount;
+    });
+    
+{% else %}
+    // Legacy single-phase data
+    {% for task in student.schedule_items %}
+        const dateKey_{{ loop.index }} = "{{ task.date.strftime('%Y-%m-%d') }}";
+        if (!scheduleData[dateKey_{{ loop.index }}]) {
+            scheduleData[dateKey_{{ loop.index }}] = {
+                intensity: "{{ task.day_intensity }}",
+                completed: {{ task.completed|lower }},
+                tasks: [],
+                taskCount: 0,
+                completedCount: 0
+            };
+        }
+        scheduleData[dateKey_{{ loop.index }}].tasks.push("{{ task.task_description|replace('"', '\\"') }}");
+        scheduleData[dateKey_{{ loop.index }}].taskCount++;
+        if ({{ task.completed|lower }}) {
+            scheduleData[dateKey_{{ loop.index }}].completedCount++;
+        }
+        scheduleData[dateKey_{{ loop.index }}].completed = scheduleData[dateKey_{{ loop.index }}].completedCount === scheduleData[dateKey_{{ loop.index }}].taskCount;
+    {% endfor %}
+{% endif %}
+
+let currentDate = new Date();
+let currentMonth = currentDate.getMonth();
+let currentYear = currentDate.getFullYear();
+
+const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
+
+const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function generateCalendar(month, year) {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const calendar = document.getElementById('calendar-container');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    calendar.innerHTML = `
+        <div class="calendar-nav">
+            <button onclick="changeMonth(-1)">← Previous</button>
+            <div class="calendar-month-year">${monthNames[month]} ${year}</div>
+            <button onclick="changeMonth(1)">Next →</button>
+        </div>
+        <div class="calendar-header">
+            ${dayNames.map(day => `<div class="calendar-day-header">${day}</div>`).join('')}
+        </div>
+        <div class="calendar">
+            ${generateCalendarDays(startDate, month, year, today)}
+        </div>
+    `;
+}
+
+function generateCalendarDays(startDate, month, year, today) {
+    let html = '';
+    let currentDate = new Date(startDate);
+    
+    for (let i = 0; i < 42; i++) { // 6 weeks
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const isCurrentMonth = currentDate.getMonth() === month;
+        const isToday = currentDate.getTime() === today.getTime();
+        const dayData = scheduleData[dateStr];
+        
+        let dayClass = 'calendar-day';
+        let dayContent = '';
+        
+        if (!isCurrentMonth) {
+            dayClass += ' other-month';
+        } else if (isToday) {
+            dayClass += ' today';
+        } else if (dayData) {
+            if (dayData.completed) {
+                dayClass += ' completed';
+                dayContent = `<div class="calendar-day-tasks">✓ ${dayData.taskCount} task${dayData.taskCount !== 1 ? 's' : ''} done</div>`;
+            } else {
+                const partialComplete = dayData.completedCount > 0;
+                if (partialComplete) {
+                    dayClass += ' partial-complete';
+                    dayContent = `<div class="calendar-day-tasks">${dayData.completedCount}/${dayData.taskCount} done</div>`;
+                } else {
+                    switch (dayData.intensity) {
+                        case 'light':
+                            dayClass += ' light-work';
+                            dayContent = `<div class="calendar-day-tasks">${dayData.taskCount} task${dayData.taskCount !== 1 ? 's' : ''}</div>`;
+                            break;
+                        case 'heavy':
+                            dayClass += ' heavy-work';
+                            dayContent = `<div class="calendar-day-tasks">${dayData.taskCount} task${dayData.taskCount !== 1 ? 's' : ''}</div>`;
+                            break;
+                        case 'none':
+                            dayClass += ' no-work';
+                            dayContent = '<div class="calendar-day-tasks">No Work</div>';
+                            break;
+                    }
+                }
+            }
+        }
+        
+        const clickHandler = isCurrentMonth ? `onclick="openDay('${dateStr}')"` : '';
+        
+        html += `
+            <div class="${dayClass}" ${clickHandler}>
+                <div class="calendar-day-number">${currentDate.getDate()}</div>
+                ${dayContent}
+            </div>
+        `;
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return html;
+}
+
+function changeMonth(direction) {
+    currentMonth += direction;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    } else if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    generateCalendar(currentMonth, currentYear);
+}
+
+function openDay(dateStr) {
+    window.location.href = `/day/${dateStr}`;
+}
+
+function filterCalendarByPhase(phaseId) {
+    {% if student.is_multi_phase %}
+    // For now, just show a message that filtering is coming soon
+    // Full implementation would require server-side filtering
+    if (phaseId) {
+        alert('Phase filtering will be available in the next update. For now, use the phase detail pages to view phase-specific tasks.');
+    }
+    {% endif %}
+}
+
+// Phase navigation handling
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize calendar
+    generateCalendar(currentMonth, currentYear);
+    
+    // Handle phase tab clicks
+    const phaseTabs = document.querySelectorAll('.phase-tab');
+    phaseTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const phaseId = this.dataset.phase;
+            
+            // Remove active class from all tabs
+            phaseTabs.forEach(t => t.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            this.classList.add('active');
+            
+            // Navigate to phase detail page
+            window.location.href = `/phase/${phaseId}`;
+        });
+    });
+});
+</script>
+{% endblock %}

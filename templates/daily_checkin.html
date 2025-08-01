@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Check-in - PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>📝 Daily Check-in</h2>
+    <p style="font-size: 1.1rem; color: var(--primary-color); font-weight: 500; margin-bottom: 2rem;">
+        {{ today.strftime('%A, %B %d, %Y') }}
+    </p>
+    <p class="opacity-75">How did your literature review work go today?</p>
+    
+    <form action="{{ url_for('submit_progress') }}" method="POST">
+        <input type="hidden" name="date" value="{{ today.strftime('%Y-%m-%d') }}">
+        
+        {% if today_tasks %}
+            <div class="form-group">
+                <label>✅ Which of today's scheduled tasks did you complete?</label>
+                <div style="margin-top: 1rem;">
+                    {% for task in today_tasks %}
+                        <div class="toggle-container {% if task.completed %}completed{% endif %}" id="task-container-{{ task.id }}">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="task_{{ task.id }}" name="completed_tasks" value="{{ task.id }}"
+                                       {% if task.completed %}checked{% endif %}
+                                       onchange="updateTaskContainer({{ task.id }})">
+                                <span class="toggle-slider round"></span>
+                            </label>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 500; margin-bottom: 0.5rem;">
+                                    {{ task.task_description }}
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs" style="padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.2); color: inherit; border-radius: 12px; border: 1px solid rgba(255,255,255,0.3);">
+                                        {{ task.day_intensity|title }} Day
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <div class="form-group">
+                <div style="padding: 2rem; background: var(--gray-50); border-radius: var(--border-radius); text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">📅</div>
+                    <p style="margin: 0; font-weight: 500;">No specific tasks were scheduled for today.</p>
+                    <p class="text-sm opacity-75" style="margin: 0.5rem 0 0 0;">
+                        That's okay! Use this check-in to log any literature review work you did.
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="form-group">
+            <label for="notes">💭 Notes about today's work (optional):</label>
+            <textarea id="notes" name="notes" rows="4" 
+                      placeholder="What did you accomplish? Any challenges? Insights from your reading? Key sources discovered?"></textarea>
+        </div>
+        
+        <div class="flex gap-4" style="margin-top: 2rem;">
+            <button type="submit" class="btn" style="flex: 1;">
+                ✨ Submit Check-in
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="flex: 0 0 auto; text-decoration: none;">
+                ← Dashboard
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Today's Focus Areas</h3>
+    <ul>
+        <li><strong>Quality over Quantity:</strong> Better to deeply understand fewer sources than skim many</li>
+        <li><strong>Take Good Notes:</strong> Record key arguments, methodologies, and your reactions</li>
+        <li><strong>Connect the Dots:</strong> Look for relationships between different sources</li>
+        <li><strong>Write Regularly:</strong> Even rough notes help develop your ideas</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h3>Helpful Resources</h3>
+    <ul>
+        <li><a href="https://scholar.google.com" target="_blank">Google Scholar</a> - Academic search engine</li>
+        <li><a href="https://www.zotero.org" target="_blank">Zotero</a> - Reference management tool</li>
+        <li><a href="https://owl.purdue.edu/owl/research_and_citation/" target="_blank">Purdue OWL</a> - Citation guides</li>
+        <li><a href="https://guides.library.harvard.edu/literaturereview" target="_blank">Harvard Library Guide</a> - Literature review tips</li>
+    </ul>
+</div>
+
+<script>
+function updateTaskContainer(taskId) {
+    const container = document.getElementById('task-container-' + taskId);
+    const checkbox = document.getElementById('task_' + taskId);
+    
+    if (checkbox.checked) {
+        container.classList.add('completed');
+    } else {
+        container.classList.remove('completed');
+    }
+}
+</script>
+{% endblock %}

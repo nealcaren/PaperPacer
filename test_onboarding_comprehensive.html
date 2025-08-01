@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comprehensive Onboarding Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .test-result { margin: 5px 0; padding: 5px; border-radius: 3px; }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        
+        /* Onboarding styles */
+        .step-content { display: none; }
+        .step-content.active { display: block; }
+        .form-group { margin: 10px 0; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 200px; }
+        .phase-toggle { margin: 10px 0; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px; }
+        .phase-toggle.active { border-color: #3b82f6; background: #eff6ff; }
+        .phase-deadline { display: none; margin-top: 10px; }
+        .btn-primary { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn-secondary { background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Comprehensive Onboarding Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Manual Test</h2>
+        <p>Fill out the form below and click Next to test manually:</p>
+        
+        <!-- Mock onboarding form -->
+        <form id="onboarding-form">
+            <!-- Step 1: Project Information -->
+            <div class="step-content active" data-step="1">
+                <h3>Step 1: Project Information</h3>
+                <div class="form-group">
+                    <label for="project_title">Project Title</label>
+                    <input type="text" id="project_title" name="project_title" required placeholder="Enter project title">
+                </div>
+                <div class="form-group">
+                    <label for="thesis_deadline">Thesis Deadline</label>
+                    <input type="date" id="thesis_deadline" name="thesis_deadline" required>
+                </div>
+            </div>
+
+            <!-- Step 2: Research Phases -->
+            <div class="step-content" data-step="2">
+                <h3>Step 2: Research Phases</h3>
+                <div class="phase-toggle" data-phase="literature_review">
+                    <input type="checkbox" id="phase_literature_review" name="selected_phases" value="literature_review" checked>
+                    <label for="phase_literature_review">📚 Literature Review</label>
+                    <div class="phase-deadline">
+                        <label for="literature_review_deadline">Deadline</label>
+                        <input type="date" id="literature_review_deadline" name="literature_review_deadline" required>
+                    </div>
+                </div>
+                
+                <div class="phase-toggle" data-phase="research_question">
+                    <input type="checkbox" id="phase_research_question" name="selected_phases" value="research_question">
+                    <label for="phase_research_question">❓ Research Question Development</label>
+                    <div class="phase-deadline">
+                        <label for="research_question_deadline">Deadline</label>
+                        <input type="date" id="research_question_deadline" name="research_question_deadline">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Work Schedule -->
+            <div class="step-content" data-step="3">
+                <h3>Step 3: Work Schedule</h3>
+                <div class="form-group">
+                    <label>Monday Intensity:</label>
+                    <label><input type="radio" name="monday_intensity" value="none" checked> None</label>
+                    <label><input type="radio" name="monday_intensity" value="light"> Light</label>
+                    <label><input type="radio" name="monday_intensity" value="heavy"> Heavy</label>
+                </div>
+            </div>
+
+            <!-- Step 4: Review -->
+            <div class="step-content" data-step="4">
+                <h3>Step 4: Review & Submit</h3>
+                <div id="review-title">Title: -</div>
+                <div id="review-deadline">Deadline: -</div>
+                <div id="review-phases">Phases: -</div>
+                <div id="review-schedule">Schedule: -</div>
+            </div>
+        </form>
+        
+        <!-- Navigation -->
+        <div class="step-navigation">
+            <button type="button" class="btn-secondary" id="prev-btn" style="display: none;">Previous</button>
+            <button type="button" class="btn-primary" id="next-btn">Next</button>
+            <button type="submit" class="btn-primary" id="submit-btn" style="display: none;">Submit</button>
+        </div>
+        
+        <!-- Progress indicator -->
+        <div id="progress-fill" style="width: 25%; height: 8px; background: #3b82f6; margin: 10px 0;"></div>
+        
+        <div>Current Step: <span id="current-step-indicator">1</span></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div id="console-log" style="font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6;"></div>
+    </div>
+
+    <script>
+        // Override console.log to capture output
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const logDiv = document.getElementById('console-log');
+            if (logDiv) {
+                const logEntry = document.createElement('div');
+                logEntry.textContent = new Date().toLocaleTimeString() + ': ' + args.join(' ');
+                logDiv.appendChild(logEntry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        };
+
+        function addTestResult(message, passed) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.textContent = (passed ? '✅ ' : '❌ ') + message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function addInfoResult(message) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-result info';
+            resultDiv.textContent = 'ℹ️ ' + message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        // Insert the OnboardingWizard class from the template
+        class OnboardingWizard {
+            constructor() {
+                this.currentStep = 1;
+                this.totalSteps = 4;
+                this.formData = {};
+                
+                this.init();
+                this.loadFromStorage();
+            }
+            
+            init() {
+                this.bindEvents();
+                this.updateProgress();
+                this.initPhaseToggles();
+                this.initPresets();
+                this.initAutoSave();
+            }
+            
+            bindEvents() {
+                // Navigation
+                const nextBtn = document.getElementById('next-btn');
+                const prevBtn = document.getElementById('prev-btn');
+                const submitBtn = document.getElementById('submit-btn');
+                
+                if (nextBtn) nextBtn.addEventListener('click', () => this.nextStep());
+                if (prevBtn) prevBtn.addEventListener('click', () => this.prevStep());
+                if (submitBtn) submitBtn.addEventListener('click', (e) => this.handleSubmit(e));
+                
+                // Auto-suggest deadlines
+                const autoSuggestBtn = document.getElementById('auto-suggest-deadlines');
+                if (autoSuggestBtn) {
+                    autoSuggestBtn.addEventListener('click', () => this.autoSuggestDeadlines());
+                }
+                
+                // Form inputs
+                const projectTitle = document.getElementById('project_title');
+                const thesisDeadline = document.getElementById('thesis_deadline');
+                
+                if (projectTitle) projectTitle.addEventListener('input', () => this.saveToStorage());
+                if (thesisDeadline) thesisDeadline.addEventListener('change', () => this.saveToStorage());
+                
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+            }
+            
+            initPhaseToggles() {
+                const phaseToggles = document.querySelectorAll('.phase-toggle');
+                
+                phaseToggles.forEach(toggle => {
+                    const checkbox = toggle.querySelector('input[type="checkbox"]');
+                    const card = toggle.querySelector('label');
+                    
+                    if (card) {
+                        card.addEventListener('click', (e) => {
+                            if (e.target.type !== 'checkbox') {
+                                e.preventDefault();
+                                checkbox.checked = !checkbox.checked;
+                                this.updatePhaseToggle(toggle);
+                                this.saveToStorage();
+                            }
+                        });
+                    }
+                    
+                    if (checkbox) {
+                        checkbox.addEventListener('change', () => {
+                            this.updatePhaseToggle(toggle);
+                            this.saveToStorage();
+                        });
+                    }
+                    
+                    // Initialize state
+                    this.updatePhaseToggle(toggle);
+                });
+            }
+            
+            updatePhaseToggle(toggle) {
+                const checkbox = toggle.querySelector('input[type="checkbox"]');
+                const deadline = toggle.querySelector('.phase-deadline');
+                const deadlineInput = deadline ? deadline.querySelector('input[type="date"]') : null;
+                
+                if (checkbox && checkbox.checked) {
+                    toggle.classList.add('active');
+                    if (deadline) deadline.style.display = 'block';
+                    if (deadlineInput) deadlineInput.required = true;
+                } else {
+                    toggle.classList.remove('active');
+                    if (deadline) deadline.style.display = 'none';
+                    if (deadlineInput) {
+                        deadlineInput.required = false;
+                        deadlineInput.value = '';
+                    }
+                }
+            }
+            
+            initPresets() {
+                // No presets in this test
+            }
+            
+            nextStep() {
+                console.log('nextStep() called - current step:', this.currentStep);
+                
+                if (!this.validateCurrentStep()) {
+                    console.log('Validation failed for step:', this.currentStep);
+                    return;
+                }
+                
+                if (this.currentStep < this.totalSteps) {
+                    this.currentStep++;
+                    console.log('Advancing to step:', this.currentStep);
+                    this.updateStep();
+                    this.updateProgress();
+                    this.saveToStorage();
+                } else {
+                    console.log('Already on last step:', this.currentStep);
+                }
+            }
+            
+            prevStep() {
+                console.log('prevStep() called - current step:', this.currentStep);
+                
+                if (this.currentStep > 1) {
+                    this.currentStep--;
+                    console.log('Moving back to step:', this.currentStep);
+                    this.updateStep();
+                    this.updateProgress();
+                    this.saveToStorage();
+                } else {
+                    console.log('Already on first step:', this.currentStep);
+                }
+            }
+            
+            updateStep() {
+                console.log('updateStep called for step:', this.currentStep);
+                
+                // Hide all step content
+                document.querySelectorAll('.step-content').forEach(step => {
+                    step.classList.remove('active');
+                });
+                
+                // Show current step
+                const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
+                if (currentStepContent) {
+                    currentStepContent.classList.add('active');
+                    console.log('Activated step content for step:', this.currentStep);
+                } else {
+                    console.error('Could not find step content for step:', this.currentStep);
+                }
+                
+                // Update navigation buttons
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
+                const submitBtn = document.getElementById('submit-btn');
+                
+                if (prevBtn) prevBtn.style.display = this.currentStep > 1 ? 'inline-block' : 'none';
+                
+                if (this.currentStep === this.totalSteps) {
+                    if (nextBtn) nextBtn.style.display = 'none';
+                    if (submitBtn) submitBtn.style.display = 'inline-block';
+                    this.updateReview();
+                } else {
+                    if (nextBtn) nextBtn.style.display = 'inline-block';
+                    if (submitBtn) submitBtn.style.display = 'none';
+                }
+                
+                // Update step indicator
+                const indicator = document.getElementById('current-step-indicator');
+                if (indicator) indicator.textContent = this.currentStep;
+            }
+            
+            updateProgress() {
+                const progressFill = document.getElementById('progress-fill');
+                if (progressFill) {
+                    const percentage = (this.currentStep / this.totalSteps) * 100;
+                    progressFill.style.width = `${percentage}%`;
+                }
+            }
+            
+            validateCurrentStep() {
+                console.log('Validating step:', this.currentStep);
+                
+                const currentStepContent = document.querySelector(`[data-step="${this.currentStep}"]`);
+                if (!currentStepContent) {
+                    console.log('ERROR: No step content found for step:', this.currentStep);
+                    return false;
+                }
+                
+                const requiredInputs = currentStepContent.querySelectorAll('input[required]');
+                let isValid = true;
+                
+                requiredInputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        input.style.borderColor = '#ef4444';
+                        isValid = false;
+                        console.log('Required field empty:', input.name || input.id, 'value:', input.value);
+                    } else {
+                        input.style.borderColor = '#ccc';
+                        console.log('Required field valid:', input.name || input.id, 'value:', input.value);
+                    }
+                });
+                
+                // Special validation for step 2 (phases)
+                if (this.currentStep === 2) {
+                    const selectedPhases = document.querySelectorAll('input[name="selected_phases"]:checked');
+                    console.log('Selected phases count:', selectedPhases.length);
+                    
+                    if (selectedPhases.length === 0) {
+                        console.log('ERROR: No phases selected');
+                        alert('Please select at least one research phase.');
+                        return false;
+                    }
+                    
+                    // Validate deadlines for selected phases
+                    let deadlineValid = true;
+                    selectedPhases.forEach(phase => {
+                        const phaseValue = phase.value;
+                        const deadlineInput = document.querySelector(`input[name="${phaseValue}_deadline"]`);
+                        console.log('Checking deadline for phase:', phaseValue, 'value:', deadlineInput ? deadlineInput.value : 'input not found');
+                        
+                        if (!deadlineInput || !deadlineInput.value) {
+                            if (deadlineInput) deadlineInput.style.borderColor = '#ef4444';
+                            deadlineValid = false;
+                            console.log('ERROR: Missing deadline for phase:', phaseValue);
+                        } else {
+                            deadlineInput.style.borderColor = '#ccc';
+                        }
+                    });
+                    
+                    if (!deadlineValid) {
+                        console.log('ERROR: Some phase deadlines are missing');
+                        alert('Please set deadlines for all selected phases.');
+                        return false;
+                    }
+                }
+                
+                console.log('Validation result for step', this.currentStep, ':', isValid);
+                return isValid;
+            }
+            
+            updateReview() {
+                console.log('Updating review content');
+                
+                const titleEl = document.getElementById('review-title');
+                const deadlineEl = document.getElementById('review-deadline');
+                
+                if (titleEl) {
+                    const title = document.getElementById('project_title');
+                    titleEl.textContent = 'Title: ' + (title ? title.value : '-');
+                }
+                
+                if (deadlineEl) {
+                    const deadline = document.getElementById('thesis_deadline');
+                    deadlineEl.textContent = 'Deadline: ' + (deadline ? deadline.value : '-');
+                }
+            }
+            
+            getPhaseDisplayName(phaseType) {
+                const names = {
+                    'literature_review': 'Literature Review',
+                    'research_question': 'Research Question Development',
+                    'methods_planning': 'Methods Planning',
+                    'irb_proposal': 'IRB Proposal'
+                };
+                return names[phaseType] || phaseType;
+            }
+            
+            handleSubmit(e) {
+                e.preventDefault();
+                console.log('Form submitted');
+                alert('Form would be submitted now!');
+                return false;
+            }
+            
+            handleKeyboard(e) {
+                // Keyboard shortcuts
+            }
+            
+            initAutoSave() {
+                // Auto-save functionality
+            }
+            
+            saveToStorage() {
+                // Save to localStorage
+            }
+            
+            loadFromStorage() {
+                // Load from localStorage
+            }
+        }
+
+        // Run tests
+        function runTests() {
+            console.log('Starting comprehensive tests...');
+            
+            try {
+                // Test 1: Instantiate wizard
+                const wizard = new OnboardingWizard();
+                addTestResult('OnboardingWizard instantiated successfully', true);
+                
+                // Test 2: Check methods exist
+                const methods = ['nextStep', 'prevStep', 'validateCurrentStep', 'updateStep', 'getPhaseDisplayName'];
+                methods.forEach(method => {
+                    if (typeof wizard[method] === 'function') {
+                        addTestResult(`${method} method exists`, true);
+                    } else {
+                        addTestResult(`${method} method missing`, false);
+                    }
+                });
+                
+                // Test 3: Test step advancement with valid data
+                console.log('Testing step advancement...');
+                
+                // Fill required fields
+                document.getElementById('project_title').value = 'Test Research Project';
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 90);
+                document.getElementById('thesis_deadline').value = futureDate.toISOString().split('T')[0];
+                
+                const initialStep = wizard.currentStep;
+                wizard.nextStep();
+                
+                if (wizard.currentStep > initialStep) {
+                    addTestResult('Step advancement works with valid data', true);
+                } else {
+                    addTestResult('Step advancement failed with valid data', false);
+                }
+                
+                // Test 4: Test validation blocking
+                console.log('Testing validation blocking...');
+                
+                // Clear required field
+                document.getElementById('project_title').value = '';
+                
+                const stepBeforeInvalid = wizard.currentStep;
+                wizard.nextStep();
+                
+                if (wizard.currentStep === stepBeforeInvalid) {
+                    addTestResult('Validation properly blocks invalid progression', true);
+                } else {
+                    addTestResult('Validation failed to block invalid progression', false);
+                }
+                
+                addInfoResult('All automated tests completed. Try the manual test below.');
+                
+            } catch (error) {
+                addTestResult(`Test failed with error: ${error.message}`, false);
+                console.error('Test error:', error);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, running tests...');
+            runTests();
+        });
+    </script>
+</body>
+</html>

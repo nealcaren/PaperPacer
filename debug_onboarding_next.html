@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Onboarding Next Button</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .step-content { display: none; }
+        .step-content.active { display: block; }
+        .btn-primary { background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-secondary { background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .step-navigation { margin-top: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Debug Onboarding Navigation</h1>
+    
+    <div class="step-content active" data-step="1">
+        <h2>Step 1: Project Info</h2>
+        <div class="form-group">
+            <label for="project_title">Project Title</label>
+            <input type="text" id="project_title" name="project_title" required placeholder="Enter project title">
+        </div>
+        <div class="form-group">
+            <label for="thesis_deadline">Thesis Deadline</label>
+            <input type="date" id="thesis_deadline" name="thesis_deadline" required>
+        </div>
+    </div>
+    
+    <div class="step-content" data-step="2">
+        <h2>Step 2: Research Phases</h2>
+        <p>This is step 2 content.</p>
+    </div>
+    
+    <div class="step-navigation">
+        <button type="button" class="btn-secondary" id="prev-btn" style="display: none;">Previous</button>
+        <button type="button" class="btn-primary" id="next-btn">Next</button>
+    </div>
+    
+    <div id="debug-log" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+        <h3>Debug Log:</h3>
+        <div id="log-content"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logContent = document.getElementById('log-content');
+            logContent.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+        
+        log('Script loaded');
+        
+        let currentStep = 1;
+        const totalSteps = 2;
+        
+        function updateStep() {
+            log('Updating to step ' + currentStep);
+            
+            // Hide all steps
+            document.querySelectorAll('.step-content').forEach(step => {
+                step.classList.remove('active');
+            });
+            
+            // Show current step
+            const currentStepContent = document.querySelector(`[data-step="${currentStep}"]`);
+            if (currentStepContent) {
+                currentStepContent.classList.add('active');
+                log('Activated step ' + currentStep);
+            } else {
+                log('ERROR: Could not find step content for step ' + currentStep);
+            }
+            
+            // Update navigation
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            prevBtn.style.display = currentStep > 1 ? 'inline-block' : 'none';
+            nextBtn.textContent = currentStep === totalSteps ? 'Finish' : 'Next';
+        }
+        
+        function validateCurrentStep() {
+            log('Validating step ' + currentStep);
+            
+            if (currentStep === 1) {
+                const title = document.getElementById('project_title').value;
+                const deadline = document.getElementById('thesis_deadline').value;
+                
+                if (!title.trim()) {
+                    log('ERROR: Project title is required');
+                    alert('Please enter a project title');
+                    return false;
+                }
+                
+                if (!deadline) {
+                    log('ERROR: Thesis deadline is required');
+                    alert('Please select a thesis deadline');
+                    return false;
+                }
+            }
+            
+            log('Step ' + currentStep + ' validation passed');
+            return true;
+        }
+        
+        function nextStep() {
+            log('Next button clicked, current step: ' + currentStep);
+            
+            if (!validateCurrentStep()) {
+                return;
+            }
+            
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateStep();
+            } else {
+                log('Reached final step');
+                alert('Form would be submitted here');
+            }
+        }
+        
+        function prevStep() {
+            log('Previous button clicked, current step: ' + currentStep);
+            
+            if (currentStep > 1) {
+                currentStep--;
+                updateStep();
+            }
+        }
+        
+        // Bind events
+        document.addEventListener('DOMContentLoaded', function() {
+            log('DOM loaded, binding events');
+            
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            
+            if (nextBtn) {
+                nextBtn.addEventListener('click', nextStep);
+                log('Next button event bound');
+            } else {
+                log('ERROR: Next button not found');
+            }
+            
+            if (prevBtn) {
+                prevBtn.addEventListener('click', prevStep);
+                log('Previous button event bound');
+            } else {
+                log('ERROR: Previous button not found');
+            }
+            
+            updateStep();
+        });
+        
+        log('Script setup complete');
+    </script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Step 2 Visibility</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .step-content { display: none; padding: 20px; border: 2px solid #ddd; margin: 10px 0; }
+        .step-content.active { display: block; border-color: #3b82f6; background: #f0f8ff; }
+        .phases-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+        .phase-toggle { position: relative; border: 2px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+        .phase-toggle.active { border-color: #3b82f6; background: #eff6ff; }
+        .phase-toggle input[type="checkbox"] { display: none; }
+        .phase-card { cursor: pointer; }
+        .phase-icon { font-size: 24px; margin-bottom: 8px; }
+        .phase-content h3 { margin: 0 0 8px 0; }
+        .phase-content p { margin: 0; color: #666; }
+        .phase-deadline { display: none; margin-top: 16px; }
+        .phase-deadline input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .debug-log { font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; }
+        .test-result { margin: 5px 0; padding: 5px; border-radius: 3px; }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Debug Step 2 Research Phases Visibility</h1>
+    
+    <div class="debug-section">
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step Navigation Test</h2>
+        <p>Current Step: <span id="current-step">1</span></p>
+        <button class="btn btn-secondary" id="prev-btn" onclick="goToPrevStep()">← Previous</button>
+        <button class="btn btn-primary" id="next-btn" onclick="goToNextStep()">Next →</button>
+        <button class="btn btn-primary" onclick="goDirectlyToStep2()">Go Directly to Step 2</button>
+    </div>
+    
+    <!-- Step 1: Project Information -->
+    <div class="step-content active" data-step="1">
+        <h2>Step 1: Project Information</h2>
+        <div>
+            <label for="project_title">Project Title</label>
+            <input type="text" id="project_title" name="project_title" required placeholder="Enter project title">
+        </div>
+        <div>
+            <label for="thesis_deadline">Thesis Deadline</label>
+            <input type="date" id="thesis_deadline" name="thesis_deadline" required>
+        </div>
+    </div>
+
+    <!-- Step 2: Research Phases -->
+    <div class="step-content" data-step="2">
+        <h2>Step 2: Research Phases</h2>
+        <p>Choose the phases that apply to your project. You can always add more later.</p>
+        
+        <div class="phases-grid">
+            <div class="phase-toggle" data-phase="literature_review">
+                <input type="checkbox" id="phase_literature_review" name="selected_phases" value="literature_review" checked>
+                <label for="phase_literature_review" class="phase-card">
+                    <div class="phase-icon">📚</div>
+                    <div class="phase-content">
+                        <h3>Literature Review</h3>
+                        <p>Systematic literature search, reading, and synthesis</p>
+                        <div class="phase-meta">
+                            <span class="duration">~4 weeks</span>
+                            <span class="task-count">15 tasks</span>
+                        </div>
+                    </div>
+                </label>
+                <div class="phase-deadline">
+                    <label for="literature_review_deadline">Deadline</label>
+                    <input type="date" id="literature_review_deadline" name="literature_review_deadline" required>
+                </div>
+            </div>
+            
+            <div class="phase-toggle" data-phase="research_question">
+                <input type="checkbox" id="phase_research_question" name="selected_phases" value="research_question">
+                <label for="phase_research_question" class="phase-card">
+                    <div class="phase-icon">❓</div>
+                    <div class="phase-content">
+                        <h3>Research Question Development</h3>
+                        <p>Problem formulation and question refinement</p>
+                        <div class="phase-meta">
+                            <span class="duration">~2 weeks</span>
+                            <span class="task-count">10 tasks</span>
+                        </div>
+                    </div>
+                </label>
+                <div class="phase-deadline">
+                    <label for="research_question_deadline">Deadline</label>
+                    <input type="date" id="research_question_deadline" name="research_question_deadline">
+                </div>
+            </div>
+            
+            <div class="phase-toggle" data-phase="methods_planning">
+                <input type="checkbox" id="phase_methods_planning" name="selected_phases" value="methods_planning">
+                <label for="phase_methods_planning" class="phase-card">
+                    <div class="phase-icon">🔬</div>
+                    <div class="phase-content">
+                        <h3>Methods Planning</h3>
+                        <p>Research design and methodology development</p>
+                        <div class="phase-meta">
+                            <span class="duration">~3 weeks</span>
+                            <span class="task-count">15 tasks</span>
+                        </div>
+                    </div>
+                </label>
+                <div class="phase-deadline">
+                    <label for="methods_planning_deadline">Deadline</label>
+                    <input type="date" id="methods_planning_deadline" name="methods_planning_deadline">
+                </div>
+            </div>
+            
+            <div class="phase-toggle" data-phase="irb_proposal">
+                <input type="checkbox" id="phase_irb_proposal" name="selected_phases" value="irb_proposal">
+                <label for="phase_irb_proposal" class="phase-card">
+                    <div class="phase-icon">📋</div>
+                    <div class="phase-content">
+                        <h3>IRB Proposal</h3>
+                        <p>Ethics review and compliance documentation</p>
+                        <div class="phase-meta">
+                            <span class="duration">~2 weeks</span>
+                            <span class="task-count">12 tasks</span>
+                        </div>
+                    </div>
+                </label>
+                <div class="phase-deadline">
+                    <label for="irb_proposal_deadline">Deadline</label>
+                    <input type="date" id="irb_proposal_deadline" name="irb_proposal_deadline">
+                </div>
+            </div>
+        </div>
+        
+        <button type="button" id="auto-suggest-deadlines">Auto-suggest deadlines</button>
+    </div>
+
+    <!-- Step 3: Work Schedule -->
+    <div class="step-content" data-step="3">
+        <h2>Step 3: Work Schedule</h2>
+        <p>This is step 3 content.</p>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Console Log</h2>
+        <div id="debug-log" class="debug-log"></div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        
+        // Override console.log to capture output
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const logDiv = document.getElementById('debug-log');
+            if (logDiv) {
+                const logEntry = document.createElement('div');
+                logEntry.textContent = new Date().toLocaleTimeString() + ': ' + args.join(' ');
+                logDiv.appendChild(logEntry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        };
+
+        function addTestResult(message, passed) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.textContent = (passed ? '✅ ' : '❌ ') + message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function updateStepDisplay() {
+            document.getElementById('current-step').textContent = currentStep;
+            
+            // Hide all steps
+            document.querySelectorAll('.step-content').forEach(step => {
+                step.classList.remove('active');
+            });
+            
+            // Show current step
+            const currentStepContent = document.querySelector(`[data-step="${currentStep}"]`);
+            if (currentStepContent) {
+                currentStepContent.classList.add('active');
+                console.log(`Activated step ${currentStep}`);
+                
+                // Check if step 2 content is visible
+                if (currentStep === 2) {
+                    checkStep2Visibility();
+                }
+            } else {
+                console.error(`Could not find step ${currentStep}`);
+            }
+        }
+        
+        function checkStep2Visibility() {
+            console.log('Checking Step 2 visibility...');
+            
+            const step2 = document.querySelector('[data-step="2"]');
+            const phasesGrid = document.querySelector('.phases-grid');
+            const phaseToggles = document.querySelectorAll('.phase-toggle');
+            
+            // Check if elements exist
+            addTestResult(`Step 2 element exists: ${!!step2}`, !!step2);
+            addTestResult(`Phases grid exists: ${!!phasesGrid}`, !!phasesGrid);
+            addTestResult(`Phase toggles found: ${phaseToggles.length}`, phaseToggles.length > 0);
+            
+            if (step2) {
+                const isVisible = step2.classList.contains('active');
+                const computedStyle = window.getComputedStyle(step2);
+                addTestResult(`Step 2 has active class: ${isVisible}`, isVisible);
+                addTestResult(`Step 2 display: ${computedStyle.display}`, computedStyle.display !== 'none');
+                addTestResult(`Step 2 visibility: ${computedStyle.visibility}`, computedStyle.visibility !== 'hidden');
+            }
+            
+            if (phasesGrid) {
+                const computedStyle = window.getComputedStyle(phasesGrid);
+                addTestResult(`Phases grid display: ${computedStyle.display}`, computedStyle.display !== 'none');
+                console.log('Phases grid computed style:', {
+                    display: computedStyle.display,
+                    visibility: computedStyle.visibility,
+                    opacity: computedStyle.opacity,
+                    height: computedStyle.height,
+                    width: computedStyle.width
+                });
+            }
+            
+            // Check individual phase toggles
+            phaseToggles.forEach((toggle, index) => {
+                const computedStyle = window.getComputedStyle(toggle);
+                const isVisible = computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden';
+                console.log(`Phase toggle ${index + 1}:`, {
+                    display: computedStyle.display,
+                    visibility: computedStyle.visibility,
+                    height: computedStyle.height
+                });
+                addTestResult(`Phase toggle ${index + 1} visible: ${isVisible}`, isVisible);
+            });
+        }
+        
+        function goToNextStep() {
+            if (currentStep < 3) {
+                currentStep++;
+                updateStepDisplay();
+            }
+        }
+        
+        function goToPrevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+            }
+        }
+        
+        function goDirectlyToStep2() {
+            currentStep = 2;
+            updateStepDisplay();
+        }
+        
+        // Initialize phase toggles
+        function initPhaseToggles() {
+            const phaseToggles = document.querySelectorAll('.phase-toggle');
+            
+            phaseToggles.forEach(toggle => {
+                const checkbox = toggle.querySelector('input[type="checkbox"]');
+                const card = toggle.querySelector('.phase-card');
+                
+                if (card) {
+                    card.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        checkbox.checked = !checkbox.checked;
+                        updatePhaseToggle(toggle);
+                    });
+                }
+                
+                if (checkbox) {
+                    checkbox.addEventListener('change', () => {
+                        updatePhaseToggle(toggle);
+                    });
+                }
+                
+                // Initialize state
+                updatePhaseToggle(toggle);
+            });
+            
+            console.log(`Initialized ${phaseToggles.length} phase toggles`);
+        }
+        
+        function updatePhaseToggle(toggle) {
+            const checkbox = toggle.querySelector('input[type="checkbox"]');
+            const deadline = toggle.querySelector('.phase-deadline');
+            const deadlineInput = deadline ? deadline.querySelector('input[type="date"]') : null;
+            
+            if (checkbox && checkbox.checked) {
+                toggle.classList.add('active');
+                if (deadline) deadline.style.display = 'block';
+                if (deadlineInput) deadlineInput.required = true;
+                console.log('Phase toggle activated:', toggle.dataset.phase);
+            } else {
+                toggle.classList.remove('active');
+                if (deadline) deadline.style.display = 'none';
+                if (deadlineInput) {
+                    deadlineInput.required = false;
+                    deadlineInput.value = '';
+                }
+                console.log('Phase toggle deactivated:', toggle.dataset.phase);
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, initializing...');
+            initPhaseToggles();
+            updateStepDisplay();
+            
+            // Run initial tests
+            setTimeout(() => {
+                console.log('Running initial visibility tests...');
+                addTestResult('Page loaded successfully', true);
+                
+                // Test if we can navigate to step 2
+                goDirectlyToStep2();
+            }, 100);
+        });
+    </script>
+</body>
+</html>

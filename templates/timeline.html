@@ -1,0 +1,755 @@
+{% extends "base.html" %}
+
+{% block title %}Integrated Timeline - PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="flex justify-between items-center mb-4">
+        <h2>📅 Integrated Project Timeline</h2>
+        <div class="flex gap-2">
+            <button onclick="refreshTimeline()" class="btn btn-secondary">🔄 Refresh</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+    </div>
+    
+    <!-- Timeline Summary -->
+    <div class="timeline-summary grid grid-4" style="margin-bottom: 2rem;">
+        <div class="summary-card">
+            <div class="summary-value">{{ timeline_data.summary.total_phases }}</div>
+            <div class="summary-label">Total Phases</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ timeline_data.summary.phases_on_track }}</div>
+            <div class="summary-label">On Track</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ timeline_data.summary.critical_phases }}</div>
+            <div class="summary-label">Critical</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-value">{{ "%.0f"|format(timeline_data.summary.overall_progress) }}%</div>
+            <div class="summary-label">Overall Progress</div>
+        </div>
+    </div>
+</div>
+
+<!-- Phase Metrics Overview -->
+<div class="card">
+    <h3>📊 Phase Status Overview</h3>
+    <div class="phase-metrics-grid">
+        {% for metric in timeline_data.phase_metrics %}
+        <div class="phase-metric-card criticality-{{ metric.criticality }}">
+            <div class="phase-metric-header">
+                <h4>{{ get_phase_icon(metric.phase_name.lower().replace(' ', '_')) }} {{ metric.phase_name }}</h4>
+                <span class="criticality-badge criticality-{{ metric.criticality }}">
+                    {{ metric.criticality|title }}
+                </span>
+            </div>
+            
+            <div class="phase-metric-content">
+                <div class="metric-row">
+                    <span class="metric-label">Progress:</span>
+                    <div class="metric-progress">
+                        <div class="mini-progress-bar">
+                            <div class="mini-progress-fill" style="width: {{ metric.progress_percentage }}%"></div>
+                        </div>
+                        <span class="metric-value">{{ "%.0f"|format(metric.progress_percentage) }}%</span>
+                    </div>
+                </div>
+                
+                <div class="metric-row">
+                    <span class="metric-label">Deadline:</span>
+                    <span class="metric-value">{{ metric.deadline[:10] }}</span>
+                </div>
+                
+                <div class="metric-row">
+                    <span class="metric-label">Days Remaining:</span>
+                    <span class="metric-value days-remaining-{{ 'critical' if metric.days_remaining <= 7 else 'normal' }}">
+                        {{ metric.days_remaining }} days
+                    </span>
+                </div>
+                
+                <div class="metric-row">
+                    <span class="metric-label">Tasks:</span>
+                    <span class="metric-value">{{ metric.completed_tasks }}/{{ metric.total_tasks }}</span>
+                </div>
+                
+                {% if metric.tasks_per_day_required > 0 %}
+                <div class="metric-row">
+                    <span class="metric-label">Tasks/Day Required:</span>
+                    <span class="metric-value">{{ "%.1f"|format(metric.tasks_per_day_required) }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="metric-row">
+                    <span class="metric-label">Buffer Days:</span>
+                    <span class="metric-value">{{ metric.buffer_days }} days</span>
+                </div>
+                
+                <div class="metric-status">
+                    {% if metric.is_on_track %}
+                        <span class="status-badge status-success">✅ On Track</span>
+                    {% else %}
+                        <span class="status-badge status-warning">⚠️ Behind Schedule</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="phase-metric-actions">
+                <a href="{{ url_for('phase_detail', phase_id=metric.phase_id) }}" class="btn btn-sm">
+                    View Details
+                </a>
+                <button onclick="adjustDeadline({{ metric.phase_id }}, '{{ metric.phase_name }}')" 
+                        class="btn btn-sm btn-secondary">
+                    Adjust Deadline
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Critical Path Analysis -->
+<div class="card">
+    <h3>🎯 Critical Path Analysis</h3>
+    <div class="critical-path-container">
+        {% for path_item in timeline_data.critical_path %}
+        <div class="critical-path-item {% if path_item.is_critical %}critical{% endif %}">
+            <div class="path-item-header">
+                <div class="path-item-title">
+                    {{ get_phase_icon(path_item.phase_name.lower().replace(' ', '_')) }}
+                    {{ path_item.phase_name }}
+                </div>
+                {% if path_item.is_critical %}
+                    <span class="critical-indicator">🔥 Critical</span>
+                {% endif %}
+            </div>
+            
+            <div class="path-item-details">
+                <div class="path-detail">
+                    <strong>Duration:</strong> {{ path_item.duration_days }} days
+                </div>
+                <div class="path-detail">
+                    <strong>Buffer:</strong> {{ path_item.buffer_days }} days
+                </div>
+                <div class="path-detail">
+                    <strong>Progress:</strong> {{ "%.0f"|format(path_item.progress_percentage) }}%
+                </div>
+                <div class="path-detail">
+                    <strong>Tasks Remaining:</strong> {{ path_item.tasks_remaining }}
+                </div>
+            </div>
+            
+            {% if path_item.is_critical %}
+            <div class="criticality-reason">
+                <strong>Why Critical:</strong> {{ path_item.criticality_reason }}
+            </div>
+            {% endif %}
+            
+            {% if path_item.dependencies %}
+            <div class="dependencies">
+                <strong>Depends on:</strong>
+                {% for dep in path_item.dependencies %}
+                    <span class="dependency-tag">{{ dep.phase_name }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if not loop.last %}
+            <div class="path-connector">↓</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Timeline Visualization -->
+<div class="card">
+    <h3>📈 Timeline Visualization</h3>
+    <div class="timeline-container">
+        <div class="timeline-header">
+            <div class="timeline-legend">
+                <div class="legend-item">
+                    <div class="legend-color deadline"></div>
+                    <span>Phase Deadlines</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color task-cluster"></div>
+                    <span>Task Clusters</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color critical"></div>
+                    <span>Critical Events</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="timeline-events" id="timeline-events">
+            {% for event in timeline_data.timeline_events %}
+            <div class="timeline-event event-{{ event.event_type }} criticality-{{ event.criticality }}"
+                 data-date="{{ event.date }}"
+                 data-phase-id="{{ event.phase_id }}">
+                <div class="event-date">{{ event.date[:10] }}</div>
+                <div class="event-content">
+                    <div class="event-title">{{ event.description }}</div>
+                    <div class="event-phase">{{ event.phase_name }}</div>
+                    {% if event.buffer_days > 0 %}
+                        <div class="event-buffer">{{ event.buffer_days }} days buffer</div>
+                    {% endif %}
+                </div>
+                <div class="event-indicator"></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Deadline Adjustment Modal -->
+<div id="deadline-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Adjust Phase Deadline</h3>
+            <button onclick="closeDeadlineModal()" class="modal-close">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="deadline-form">
+                <div class="form-group">
+                    <label for="phase-name-display">Phase:</label>
+                    <input type="text" id="phase-name-display" readonly class="form-input">
+                    <input type="hidden" id="phase-id-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="new-deadline">New Deadline:</label>
+                    <input type="date" id="new-deadline" required class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <div class="warning-box" style="display: none;" id="deadline-warnings">
+                        <h4>⚠️ Warnings:</h4>
+                        <ul id="warning-list"></ul>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn">Update Deadline</button>
+                    <button type="button" onclick="closeDeadlineModal()" class="btn btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Timeline-specific styles */
+.timeline-summary {
+    gap: 1rem;
+}
+
+.summary-card {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--gray-200);
+}
+
+.summary-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.summary-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.phase-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.phase-metric-card {
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    transition: all var(--transition-normal);
+}
+
+.phase-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.phase-metric-card.criticality-critical {
+    border-color: var(--error-color);
+    background: var(--error-bg);
+}
+
+.phase-metric-card.criticality-high {
+    border-color: var(--warning-color);
+    background: var(--warning-bg);
+}
+
+.phase-metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.phase-metric-header h4 {
+    margin: 0;
+    color: var(--gray-800);
+}
+
+.criticality-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.criticality-badge.criticality-critical {
+    background: var(--error-color);
+    color: white;
+}
+
+.criticality-badge.criticality-high {
+    background: var(--warning-color);
+    color: white;
+}
+
+.criticality-badge.criticality-medium {
+    background: var(--info-color);
+    color: white;
+}
+
+.criticality-badge.criticality-low {
+    background: var(--success-color);
+    color: white;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.metric-value {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.metric-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    margin-left: 1rem;
+}
+
+.days-remaining-critical {
+    color: var(--error-color);
+}
+
+.days-remaining-normal {
+    color: var(--gray-800);
+}
+
+.metric-status {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.phase-metric-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.critical-path-container {
+    margin-top: 1rem;
+}
+
+.critical-path-item {
+    background: var(--gray-50);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.critical-path-item.critical {
+    border-color: var(--error-color);
+    background: var(--error-bg);
+}
+
+.path-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.path-item-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.critical-indicator {
+    background: var(--error-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.path-item-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.path-detail {
+    font-size: 0.875rem;
+}
+
+.criticality-reason {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--error-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.dependencies {
+    margin-bottom: 1rem;
+}
+
+.dependency-tag {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+.path-connector {
+    text-align: center;
+    font-size: 1.5rem;
+    color: var(--gray-400);
+    margin: 0.5rem 0;
+}
+
+.timeline-header {
+    margin-bottom: 1.5rem;
+}
+
+.timeline-legend {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.legend-color.deadline {
+    background: var(--error-color);
+}
+
+.legend-color.task-cluster {
+    background: var(--info-color);
+}
+
+.legend-color.critical {
+    background: var(--warning-color);
+}
+
+.timeline-events {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-events::before {
+    content: '';
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--gray-300);
+}
+
+.timeline-event {
+    position: relative;
+    margin-bottom: 1.5rem;
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    margin-left: 1rem;
+}
+
+.timeline-event.event-deadline {
+    border-color: var(--error-color);
+}
+
+.timeline-event.event-task-cluster {
+    border-color: var(--info-color);
+}
+
+.timeline-event.criticality-critical {
+    background: var(--error-bg);
+}
+
+.timeline-event.criticality-high {
+    background: var(--warning-bg);
+}
+
+.event-indicator {
+    position: absolute;
+    left: -1.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 2px solid white;
+}
+
+.event-date {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.event-title {
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 0.25rem;
+}
+
+.event-phase {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.event-buffer {
+    font-size: 0.75rem;
+    color: var(--success-color);
+    font-weight: 500;
+}
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.modal-header h3 {
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray-500);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.warning-box {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.warning-box h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--warning-color);
+}
+
+.warning-box ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .timeline-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .phase-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .path-item-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .timeline-legend {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+</style>
+
+<script>
+function refreshTimeline() {
+    // Reload the page to get fresh data
+    window.location.reload();
+}
+
+function adjustDeadline(phaseId, phaseName) {
+    document.getElementById('phase-id-input').value = phaseId;
+    document.getElementById('phase-name-display').value = phaseName;
+    document.getElementById('deadline-modal').style.display = 'flex';
+}
+
+function closeDeadlineModal() {
+    document.getElementById('deadline-modal').style.display = 'none';
+    document.getElementById('deadline-warnings').style.display = 'none';
+}
+
+document.getElementById('deadline-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const phaseId = document.getElementById('phase-id-input').value;
+    const newDeadline = document.getElementById('new-deadline').value;
+    
+    if (!phaseId || !newDeadline) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Updating...';
+    submitBtn.disabled = true;
+    
+    fetch('/api/redistribute_tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            phase_id: parseInt(phaseId),
+            new_deadline: newDeadline
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.warnings && data.warnings.length > 0) {
+                // Show warnings
+                const warningBox = document.getElementById('deadline-warnings');
+                const warningList = document.getElementById('warning-list');
+                
+                warningList.innerHTML = '';
+                data.warnings.forEach(warning => {
+                    const li = document.createElement('li');
+                    li.textContent = warning;
+                    warningList.appendChild(li);
+                });
+                
+                warningBox.style.display = 'block';
+            }
+            
+            alert(data.message);
+            closeDeadlineModal();
+            refreshTimeline();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the deadline');
+    })
+    .finally(() => {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Close modal when clicking outside
+document.getElementById('deadline-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeadlineModal();
+    }
+});
+</script>
+{% endblock %}

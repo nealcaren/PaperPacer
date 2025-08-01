@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}{{ phase.phase_name }} - PaperPacer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="phase-header">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <span class="phase-icon">{{ template.icon }}</span>
+                <div>
+                    <h2 style="margin: 0;">{{ phase.phase_name }}</h2>
+                    <p class="phase-description">{{ template.description }}</p>
+                </div>
+            </div>
+            <div class="phase-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Progress</span>
+                    <span class="stat-value">{{ progress.progress_percentage }}%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Deadline</span>
+                    <span class="stat-value">{{ phase.deadline.strftime('%b %d, %Y') }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="progress-bar" style="margin-top: 1rem;">
+            <div class="progress-fill" style="width: {{ progress.progress_percentage }}%"></div>
+        </div>
+        
+        <div class="flex justify-between items-center" style="margin-top: 0.5rem;">
+            <span class="text-sm opacity-75">{{ progress.completed_tasks }}/{{ progress.total_tasks }} tasks completed</span>
+            {% set days_remaining = (phase.deadline - today).days %}
+            <span class="text-sm {% if days_remaining < 7 %}style='color: var(--error-color);'{% elif days_remaining < 14 %}style='color: var(--warning-color);'{% else %}style='color: var(--success-color);'{% endif %}">
+                {{ days_remaining }} days remaining
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h3>📋 Phase Tasks</h3>
+        {% if phase_tasks %}
+            <div class="task-list">
+                {% for task in phase_tasks %}
+                    <div class="task-item {% if task.completed %}completed{% endif %}">
+                        <div class="task-header">
+                            <div class="flex items-center">
+                                <span class="task-status">
+                                    {% if task.completed %}✅{% else %}⏳{% endif %}
+                                </span>
+                                <div class="task-info">
+                                    <div class="task-date">{{ task.date.strftime('%b %d, %Y') }}</div>
+                                    <div class="task-type">{{ task.task_type|title }}</div>
+                                </div>
+                            </div>
+                            <div class="task-intensity">
+                                {% if task.day_intensity == 'heavy' %}🔥 Heavy{% else %}💡 Light{% endif %}
+                            </div>
+                        </div>
+                        <div class="task-description">
+                            {{ task.task_description }}
+                        </div>
+                        {% if not task.completed and task.date <= today %}
+                            <div class="task-actions">
+                                <a href="{{ url_for('day_detail', date_str=task.date.strftime('%Y-%m-%d')) }}" class="btn btn-small">
+                                    Complete Task
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center" style="padding: 2rem;">
+                <p class="opacity-75">No tasks generated for this phase yet.</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="card">
+        <h3>💡 Phase Tips</h3>
+        <div class="tips-list">
+            {% if template.task_types %}
+                <div class="tip-item">
+                    <strong>Focus Areas:</strong>
+                    <div class="task-types">
+                        {% for task_type in template.task_types %}
+                            <span class="task-type-badge">{{ task_type|title }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <div class="tip-item">
+                <strong>Estimated Duration:</strong>
+                <span>{{ template.default_duration_weeks }} weeks</span>
+            </div>
+            
+            {% if phase.phase_type == 'literature_review' %}
+                <div class="tip-item">
+                    <strong>Key Strategy:</strong>
+                    <p>Start broad, then narrow your focus. Look for patterns and gaps in the existing research.</p>
+                </div>
+                <div class="tip-item">
+                    <strong>Organization Tip:</strong>
+                    <p>Group sources by theme, not chronologically. This will help you identify research trends.</p>
+                </div>
+            {% elif phase.phase_type == 'research_question' %}
+                <div class="tip-item">
+                    <strong>Key Strategy:</strong>
+                    <p>Your research question should be specific, measurable, and contribute new knowledge to your field.</p>
+                </div>
+                <div class="tip-item">
+                    <strong>Refinement Tip:</strong>
+                    <p>Test your question: Can it be answered with available resources and methods?</p>
+                </div>
+            {% elif phase.phase_type == 'methods_planning' %}
+                <div class="tip-item">
+                    <strong>Key Strategy:</strong>
+                    <p>Choose methods that best answer your research question, not just what's familiar.</p>
+                </div>
+                <div class="tip-item">
+                    <strong>Validation Tip:</strong>
+                    <p>Pilot test your instruments with a small group before full implementation.</p>
+                </div>
+            {% elif phase.phase_type == 'irb_proposal' %}
+                <div class="tip-item">
+                    <strong>Key Strategy:</strong>
+                    <p>Be thorough in documenting potential risks and how you'll mitigate them.</p>
+                </div>
+                <div class="tip-item">
+                    <strong>Timeline Tip:</strong>
+                    <p>IRB review can take 2-6 weeks. Plan accordingly and submit early.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div style="margin-top: 1.5rem;">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="width: 100%;">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.phase-header {
+    margin-bottom: 1.5rem;
+}
+
+.phase-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+}
+
+.phase-description {
+    color: var(--gray-600);
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+}
+
+.phase-stats {
+    display: flex;
+    gap: 2rem;
+    text-align: right;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.task-list {
+    space-y: 1rem;
+}
+
+.task-item {
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--gray-300);
+    margin-bottom: 1rem;
+    transition: all 0.2s ease;
+}
+
+.task-item.completed {
+    background: #e8f5e8;
+    border-left-color: var(--success-color);
+    opacity: 0.8;
+}
+
+.task-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.task-status {
+    font-size: 1.25rem;
+    margin-right: 0.75rem;
+}
+
+.task-info {
+    flex: 1;
+}
+
+.task-date {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 0.9rem;
+}
+
+.task-type {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.task-intensity {
+    font-size: 0.8rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.task-description {
+    color: var(--gray-700);
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+}
+
+.task-actions {
+    text-align: right;
+}
+
+.btn-small {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+}
+
+.tips-list {
+    space-y: 1rem;
+}
+
+.tip-item {
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--border-radius);
+    border-left: 3px solid var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.tip-item strong {
+    color: var(--gray-800);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.tip-item p {
+    margin: 0;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.task-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.task-type-badge {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .phase-header .flex {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .phase-stats {
+        flex-direction: row;
+        gap: 1rem;
+    }
+    
+    .task-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .task-actions {
+        text-align: left;
+    }
+}
+</style>
+{% endblock %}
