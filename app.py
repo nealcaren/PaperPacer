@@ -1131,7 +1131,8 @@ def submit_onboarding():
         # Validate all phase deadlines are before thesis deadline
         for phase_type, deadline in phase_deadlines.items():
             if deadline >= thesis_deadline:
-                phase_name = PhaseManager.get_phase_template(phase_type)['name']
+                template = PhaseManager.get_phase_template(phase_type)
+                phase_name = template['name'] if template else phase_type
                 flash(f'{phase_name} deadline must be before thesis deadline')
                 return render_template('onboard.html')
         
