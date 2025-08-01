@@ -29,4 +29,54 @@
     
     <p>With PaperPacer, you'll break down this complex task into manageable daily goals, ensuring you stay on track and produce high-quality work.</p>
 </div>
+{% endblock %}{% extends "base.html" %}
+
+{% block title %}Welcome to PaperPacer{% endblock %}
+
+{% block content %}
+<div class="onboarding-container">
+    <div class="step-content active">
+        <div class="step-header">
+            <h2>Welcome to PaperPacer</h2>
+            <p>Your intelligent research companion for academic success</p>
+        </div>
+        
+        <div class="form-card">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">📚</div>
+                <h3>Organize Your Research Journey</h3>
+                <p>PaperPacer helps you break down complex research projects into manageable daily tasks, keeping you on track to meet your deadlines.</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin: 2rem 0;">
+                <div style="text-align: center; padding: 1.5rem; background: #f8faff; border-radius: 12px;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📅</div>
+                    <h4>Smart Scheduling</h4>
+                    <p>Automatically distribute tasks across your available work days</p>
+                </div>
+                
+                <div style="text-align: center; padding: 1.5rem; background: #f0fdf4; border-radius: 12px;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                    <h4>Progress Tracking</h4>
+                    <p>Monitor your progress and stay motivated with visual feedback</p>
+                </div>
+                
+                <div style="text-align: center; padding: 1.5rem; background: #fffbeb; border-radius: 12px;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+                    <h4>Phase Management</h4>
+                    <p>Break your research into manageable phases with clear milestones</p>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="{{ url_for('register') }}" class="btn btn-primary" style="margin-right: 1rem; text-decoration: none;">
+                    Get Started
+                </a>
+                <a href="{{ url_for('login') }}" class="btn btn-secondary" style="text-decoration: none;">
+                    Sign In
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
