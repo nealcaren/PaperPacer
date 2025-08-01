@@ -1228,16 +1228,6 @@ def inject_template_functions():
         'get_completed_task_count': get_completed_task_count,
         'get_next_deadline': get_next_deadline
     }
-    
-    return render_template('dashboard.html', 
-                         student=current_user, 
-                         upcoming_tasks=upcoming_tasks, 
-                         today=today,
-                         get_phase_progress=get_phase_progress,
-                         get_phase_icon=get_phase_icon,
-                         get_next_deadline=get_next_deadline,
-                         get_total_task_count=get_total_task_count,
-                         get_completed_task_count=get_completed_task_count)
 
 @app.route('/phase/<int:phase_id>')
 @login_required
