@@ -6,43 +6,54 @@
 <div class="card">
     <div class="flex justify-between items-center mb-4">
         <h2>📋 Your Remaining Tasks{% if selected_phase %} - {{ selected_phase.phase_name }}{% endif %}</h2>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        <div class="flex gap-2">
+            <button onclick="showAddTaskModal()" class="btn btn-secondary">+ Add Task</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
     </div>
-    
+
     {% if student.is_multi_phase and user_phases %}
     <div class="phase-filter" style="margin-bottom: 1.5rem;">
-        <label for="phase-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Filter by Phase:</label>
+        <label for="phase-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Filter by
+            Phase:</label>
         <div class="flex gap-2 items-center">
             <div class="custom-select" style="min-width: 200px;">
                 <select id="phase-select" onchange="filterByPhase(this.value)">
                     <option value="">All Phases</option>
                     {% for phase in user_phases %}
-                        <option value="{{ phase.id }}" {% if phase_filter and phase_filter|string == phase.id|string %}selected{% endif %}>
-                            {{ get_phase_icon(phase.phase_type) }} {{ phase.phase_name }}
-                        </option>
+                    <option value="{{ phase.id }}" {% if phase_filter and phase_filter|string==phase.id|string
+                        %}selected{% endif %}>
+                        {{ get_phase_icon(phase.phase_type) }} {{ phase.phase_name }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
             {% if phase_filter %}
-                <a href="{{ url_for('remaining_tasks') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">
-                    Clear Filter
-                </a>
+            <a href="{{ url_for('remaining_tasks') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">
+                Clear Filter
+            </a>
             {% endif %}
         </div>
     </div>
     {% endif %}
-    
+
     <div class="grid grid-3" style="margin-bottom: 2rem;">
-        <div style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
-            <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem;">{{ total_incomplete }}</div>
+        <div
+            style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
+            <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem;">{{ total_incomplete }}
+            </div>
             <div style="font-weight: 600; color: var(--gray-700);">Tasks Remaining</div>
         </div>
-        <div style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
-            <div style="font-size: 2rem; color: var(--success-color); margin-bottom: 0.5rem;">{{ "%.0f"|format(completion_rate) }}%</div>
+        <div
+            style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
+            <div style="font-size: 2rem; color: var(--success-color); margin-bottom: 0.5rem;">{{
+                "%.0f"|format(completion_rate) }}%</div>
             <div style="font-weight: 600; color: var(--gray-700);">Complete</div>
         </div>
-        <div style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
-            <div style="font-size: 2rem; color: var(--accent-color); margin-bottom: 0.5rem;">{{ overdue_tasks|length }}</div>
+        <div
+            style="text-align: center; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
+            <div style="font-size: 2rem; color: var(--accent-color); margin-bottom: 0.5rem;">{{ overdue_tasks|length }}
+            </div>
             <div style="font-weight: 600; color: var(--gray-700);">Overdue</div>
         </div>
     </div>
@@ -51,12 +62,19 @@
 {% if overdue_tasks %}
 <div class="card">
     <h3 style="color: var(--error-color);">⚠️ Overdue Tasks ({{ overdue_tasks|length }})</h3>
-    <p class="text-sm opacity-75" style="margin-bottom: 1.5rem;">These tasks were scheduled for past dates but haven't been completed yet.</p>
-    
+    <p class="text-sm opacity-75" style="margin-bottom: 1.5rem;">These tasks were scheduled for past dates but haven't
+        been completed yet.</p>
+
     <div style="space-y: 1rem;">
         {% for task in overdue_tasks %}
-            <div style="padding: 1.5rem; background: #fef2f2; border: 2px solid #fecaca; border-radius: var(--border-radius); margin-bottom: 1rem;">
-                <div class="flex justify-between items-start">
+        <div
+            style="padding: 1.5rem; background: #fef2f2; border: 2px solid #fecaca; border-radius: var(--border-radius); margin-bottom: 1rem;">
+            <div class="flex justify-between items-start">
+                <div class="flex items-start gap-3" style="flex: 1;">
+                    <label class="task-checkbox">
+                        <input type="checkbox" onchange="toggleTaskCompletion({{ task.id }}, this.checked)">
+                        <span class="checkmark"></span>
+                    </label>
                     <div style="flex: 1;">
                         <div style="font-weight: 600; color: var(--error-color); margin-bottom: 0.5rem;">
                             {{ task.task_description }}
@@ -66,21 +84,25 @@
                                 📅 Was due: {{ task.date.strftime('%A, %B %d') }}
                             </span>
                             {% if student.is_multi_phase and task.project_phase %}
-                                <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 12px;">
-                                    {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name }}
-                                </span>
+                            <span class="text-xs"
+                                style="padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 12px;">
+                                {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name }}
+                            </span>
                             {% endif %}
-                            <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--error-color); color: white; border-radius: 12px;">
+                            <span class="text-xs"
+                                style="padding: 0.25rem 0.5rem; background: var(--error-color); color: white; border-radius: 12px;">
                                 {{ task.day_intensity|title }} Day
                             </span>
+                            <span class="task-priority {{ task.priority or 'medium' }}">{{ (task.priority or 'medium')|title }}</span>
                         </div>
                     </div>
-                    <a href="{{ url_for('day_detail', date_str=task.date.strftime('%Y-%m-%d')) }}" 
-                       class="btn btn-secondary" style="margin-left: 1rem;">
-                        📝 Update
-                    </a>
                 </div>
+                <a href="{{ url_for('day_detail', date_str=task.date.strftime('%Y-%m-%d')) }}" class="btn btn-secondary"
+                    style="margin-left: 1rem;">
+                    📝 Update
+                </a>
             </div>
+        </div>
         {% endfor %}
     </div>
 </div>
@@ -90,11 +112,17 @@
 <div class="card">
     <h3 style="color: var(--primary-color);">🎯 Today's Tasks ({{ today_tasks|length }})</h3>
     <p class="text-sm opacity-75" style="margin-bottom: 1.5rem;">Focus on these tasks today!</p>
-    
+
     <div style="space-y: 1rem;">
         {% for task in today_tasks %}
-            <div style="padding: 1.5rem; background: #eff6ff; border: 2px solid #bfdbfe; border-radius: var(--border-radius); margin-bottom: 1rem;">
-                <div class="flex justify-between items-start">
+        <div
+            style="padding: 1.5rem; background: #eff6ff; border: 2px solid #bfdbfe; border-radius: var(--border-radius); margin-bottom: 1rem;">
+            <div class="flex justify-between items-start">
+                <div class="flex items-start gap-3" style="flex: 1;">
+                    <label class="task-checkbox">
+                        <input type="checkbox" onchange="toggleTaskCompletion({{ task.id }}, this.checked)">
+                        <span class="checkmark"></span>
+                    </label>
                     <div style="flex: 1;">
                         <div style="font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem;">
                             {{ task.task_description }}
@@ -104,21 +132,24 @@
                                 📅 Due today
                             </span>
                             {% if student.is_multi_phase and task.project_phase %}
-                                <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--secondary-color); color: white; border-radius: 12px;">
-                                    {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name }}
-                                </span>
+                            <span class="text-xs"
+                                style="padding: 0.25rem 0.5rem; background: var(--secondary-color); color: white; border-radius: 12px;">
+                                {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name }}
+                            </span>
                             {% endif %}
-                            <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 12px;">
+                            <span class="text-xs"
+                                style="padding: 0.25rem 0.5rem; background: var(--primary-color); color: white; border-radius: 12px;">
                                 {{ task.day_intensity|title }} Day
                             </span>
+                            <span class="task-priority {{ task.priority or 'medium' }}">{{ (task.priority or 'medium')|title }}</span>
                         </div>
                     </div>
-                    <a href="{{ url_for('daily_checkin') }}" 
-                       class="btn" style="margin-left: 1rem;">
-                        ✅ Check In
-                    </a>
                 </div>
+                <a href="{{ url_for('daily_checkin') }}" class="btn" style="margin-left: 1rem;">
+                    ✅ Check In
+                </a>
             </div>
+        </div>
         {% endfor %}
     </div>
 </div>
@@ -128,42 +159,54 @@
 <div class="card">
     <h3 style="color: var(--secondary-color);">📅 Upcoming Tasks ({{ upcoming_tasks|length }})</h3>
     <p class="text-sm opacity-75" style="margin-bottom: 1.5rem;">Your future scheduled tasks.</p>
-    
+
     <div style="space-y: 1rem;">
         {% for week_key, week_data in upcoming_weeks %}
-            <div style="margin-bottom: 2rem;">
-                <h4 style="color: var(--gray-600); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--gray-200);">
-                    Week of {{ week_data.week_start.strftime('%B %d') }}
-                </h4>
-                {% for task in week_data.tasks %}
-                    <div style="padding: 1rem; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--border-radius); margin-bottom: 0.75rem;">
-                        <div class="flex justify-between items-start">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 500; color: var(--gray-800); margin-bottom: 0.5rem;">
-                                    {{ task.task_description }}
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-sm opacity-75">
-                                        📅 {{ task.date.strftime('%A, %B %d') }}
-                                    </span>
-                                    {% if student.is_multi_phase and task.project_phase %}
-                                        <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--accent-color); color: white; border-radius: 12px;">
-                                            {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name }}
-                                        </span>
-                                    {% endif %}
-                                    <span class="text-xs" style="padding: 0.25rem 0.5rem; background: var(--secondary-color); color: white; border-radius: 12px;">
-                                        {{ task.day_intensity|title }} Day
-                                    </span>
-                                </div>
+        <div style="margin-bottom: 2rem;">
+            <h4
+                style="color: var(--gray-600); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--gray-200);">
+                Week of {{ week_data.week_start.strftime('%B %d') }}
+            </h4>
+            {% for task in week_data.tasks %}
+            <div
+                style="padding: 1rem; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--border-radius); margin-bottom: 0.75rem;">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-start gap-3" style="flex: 1;">
+                        <label class="task-checkbox">
+                            <input type="checkbox" onchange="toggleTaskCompletion({{ task.id }}, this.checked)">
+                            <span class="checkmark"></span>
+                        </label>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500; color: var(--gray-800); margin-bottom: 0.5rem;">
+                                {{ task.task_description }}
                             </div>
-                            <a href="{{ url_for('day_detail', date_str=task.date.strftime('%Y-%m-%d')) }}" 
-                               class="btn btn-secondary" style="margin-left: 1rem;">
-                                👁️ View
-                            </a>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm opacity-75">
+                                    📅 {{ task.date.strftime('%A, %B %d') }}
+                                </span>
+                                {% if student.is_multi_phase and task.project_phase %}
+                                <span class="text-xs"
+                                    style="padding: 0.25rem 0.5rem; background: var(--accent-color); color: white; border-radius: 12px;">
+                                    {{ get_phase_icon(task.project_phase.phase_type) }} {{ task.project_phase.phase_name
+                                    }}
+                                </span>
+                                {% endif %}
+                                <span class="text-xs"
+                                    style="padding: 0.25rem 0.5rem; background: var(--secondary-color); color: white; border-radius: 12px;">
+                                    {{ task.day_intensity|title }} Day
+                                </span>
+                                <span class="task-priority {{ task.priority or 'medium' }}">{{ (task.priority or 'medium')|title }}</span>
+                            </div>
                         </div>
                     </div>
-                {% endfor %}
+                    <a href="{{ url_for('day_detail', date_str=task.date.strftime('%Y-%m-%d')) }}"
+                        class="btn btn-secondary" style="margin-left: 1rem;">
+                        👁️ View
+                    </a>
+                </div>
             </div>
+            {% endfor %}
+        </div>
         {% endfor %}
     </div>
 </div>
@@ -186,35 +229,337 @@
     <h3>💡 Task Management Tips</h3>
     <div class="grid grid-2">
         <div>
-            <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--error-color); margin-bottom: 1rem;">
+            <div
+                style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--error-color); margin-bottom: 1rem;">
                 <strong class="text-sm">Handle Overdue Tasks First:</strong>
-                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Catch up on missed work to prevent falling further behind</p>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Catch up on missed work to prevent falling
+                    further behind</p>
             </div>
-            <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--primary-color);">
+            <div
+                style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--primary-color);">
                 <strong class="text-sm">Focus on Today:</strong>
-                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Complete today's tasks before moving to future work</p>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Complete today's tasks before moving to
+                    future work</p>
             </div>
         </div>
         <div>
-            <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--secondary-color); margin-bottom: 1rem;">
+            <div
+                style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--secondary-color); margin-bottom: 1rem;">
                 <strong class="text-sm">Plan Ahead:</strong>
-                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Review upcoming tasks to prepare materials and time</p>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Review upcoming tasks to prepare materials
+                    and time</p>
             </div>
-            <div style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--success-color);">
+            <div
+                style="padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius); border-left: 3px solid var(--success-color);">
                 <strong class="text-sm">Stay Consistent:</strong>
-                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Regular daily progress prevents overwhelming backlogs</p>
+                <p class="text-sm opacity-75" style="margin: 0.25rem 0 0 0;">Regular daily progress prevents
+                    overwhelming backlogs</p>
             </div>
         </div>
     </div>
 </div>
 
-<script>
-function filterByPhase(phaseId) {
-    if (phaseId) {
-        window.location.href = "{{ url_for('remaining_tasks') }}?phase=" + phaseId;
-    } else {
-        window.location.href = "{{ url_for('remaining_tasks') }}";
+<!-- Add Task Modal -->
+<div id="addTaskModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>➕ Add New Task</h3>
+            <span class="close" onclick="hideAddTaskModal()">&times;</span>
+        </div>
+        <form id="addTaskForm" onsubmit="addTask(event)">
+            <div class="form-group">
+                <label for="taskDescription">Task Description *</label>
+                <textarea id="taskDescription" name="task_description" required
+                    placeholder="Describe what needs to be done..." rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="taskDate">Due Date *</label>
+                <input type="date" id="taskDate" name="task_date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="taskIntensity">Day Intensity</label>
+                <select id="taskIntensity" name="task_intensity">
+                    <option value="light">Light Day</option>
+                    <option value="heavy">Heavy Day</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="taskPriority">Priority</label>
+                <select id="taskPriority" name="task_priority">
+                    <option value="low">Low Priority</option>
+                    <option value="medium" selected>Medium Priority</option>
+                    <option value="high">High Priority</option>
+                </select>
+            </div>
+
+            {% if student.is_multi_phase and user_phases %}
+            <div class="form-group">
+                <label for="taskPhase">Phase (Optional)</label>
+                <select id="taskPhase" name="phase_id">
+                    <option value="">Select a phase...</option>
+                    {% for phase in user_phases %}
+                    <option value="{{ phase.id }}">
+                        {{ get_phase_icon(phase.phase_type) }} {{ phase.phase_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="modal-actions">
+                <button type="button" onclick="hideAddTaskModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn">Add Task</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    /* Task checkbox styling */
+    .task-checkbox {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        margin-top: 0.25rem;
     }
-}
+
+    .task-checkbox input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+    .checkmark {
+        position: relative;
+        display: inline-block;
+        height: 20px;
+        width: 20px;
+        background-color: #fff;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .task-checkbox:hover input~.checkmark {
+        border-color: var(--primary-color);
+    }
+
+    .task-checkbox input:checked~.checkmark {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+    }
+
+    .task-checkbox input:checked~.checkmark:after {
+        display: block;
+    }
+
+    .task-checkbox .checkmark:after {
+        left: 6px;
+        top: 2px;
+        width: 6px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+    /* Modal styling */
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background-color: white;
+        border-radius: var(--border-radius);
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: var(--primary-color);
+    }
+
+    .close {
+        font-size: 1.5rem;
+        font-weight: bold;
+        cursor: pointer;
+        color: var(--gray-500);
+        transition: color 0.2s ease;
+    }
+
+    .close:hover {
+        color: var(--gray-700);
+    }
+
+    .modal form {
+        padding: 1.5rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    /* Task completion animation */
+    .task-completed {
+        opacity: 0.6;
+        transition: opacity 0.3s ease;
+    }
+
+    .task-completed .task-description {
+        text-decoration: line-through;
+    }
+</style>
+
+<script>
+    function filterByPhase(phaseId) {
+        if (phaseId) {
+            window.location.href = "{{ url_for('remaining_tasks') }}?phase=" + phaseId;
+        } else {
+            window.location.href = "{{ url_for('remaining_tasks') }}";
+        }
+    }
+
+    function showAddTaskModal() {
+        document.getElementById('addTaskModal').style.display = 'flex';
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('taskDate').value = today;
+    }
+
+    function hideAddTaskModal() {
+        document.getElementById('addTaskModal').style.display = 'none';
+        document.getElementById('addTaskForm').reset();
+    }
+
+    function toggleTaskCompletion(taskId, isCompleted) {
+        fetch('{{ url_for("toggle_task_completion") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `task_id=${taskId}&completed=${isCompleted}`
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Find the task container and add/remove completed styling
+                    const taskContainer = document.querySelector(`input[onchange*="${taskId}"]`).closest('.card > div, [style*="padding: 1.5rem"]');
+                    if (isCompleted) {
+                        taskContainer.classList.add('task-completed');
+                        // Optionally fade out and remove after a delay
+                        setTimeout(() => {
+                            taskContainer.style.transition = 'opacity 0.5s ease, height 0.5s ease';
+                            taskContainer.style.opacity = '0';
+                            taskContainer.style.height = '0';
+                            taskContainer.style.overflow = 'hidden';
+                            taskContainer.style.marginBottom = '0';
+                            taskContainer.style.paddingTop = '0';
+                            taskContainer.style.paddingBottom = '0';
+                            setTimeout(() => {
+                                location.reload(); // Refresh to update counts
+                            }, 500);
+                        }, 1000);
+                    } else {
+                        taskContainer.classList.remove('task-completed');
+                    }
+                } else {
+                    alert('Error updating task: ' + data.error);
+                    // Revert checkbox state
+                    document.querySelector(`input[onchange*="${taskId}"]`).checked = !isCompleted;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating task. Please try again.');
+                // Revert checkbox state
+                document.querySelector(`input[onchange*="${taskId}"]`).checked = !isCompleted;
+            });
+    }
+
+    function addTask(event) {
+        event.preventDefault();
+
+        const formData = new FormData(document.getElementById('addTaskForm'));
+
+        fetch('{{ url_for("add_task") }}', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    hideAddTaskModal();
+                    // Show success message
+                    const successMsg = document.createElement('div');
+                    successMsg.className = 'alert alert-success';
+                    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1001; padding: 1rem; background: var(--success-color); color: white; border-radius: var(--border-radius);';
+                    successMsg.textContent = 'Task added successfully!';
+                    document.body.appendChild(successMsg);
+
+                    setTimeout(() => {
+                        successMsg.remove();
+                        location.reload(); // Refresh to show new task
+                    }, 2000);
+                } else {
+                    alert('Error adding task: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding task. Please try again.');
+            });
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('addTaskModal');
+        if (event.target === modal) {
+            hideAddTaskModal();
+        }
+    }
+
+    // Check if we should auto-open the add task modal
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'add_task') {
+            showAddTaskModal();
+        }
+    });
 </script>
 {% endblock %}

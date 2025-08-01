@@ -130,6 +130,7 @@ class ScheduleItem(db.Model):
     date = db.Column(db.Date, nullable=False)
     task_description = db.Column(db.Text, nullable=False)
     day_intensity = db.Column(db.String(20), default='light')  # 'none', 'light', 'heavy'
+    priority = db.Column(db.String(10), default='medium')  # 'high', 'medium', 'low'
     completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -181,6 +182,7 @@ class PhaseTask(db.Model):
     task_description = db.Column(db.Text, nullable=False)
     task_type = db.Column(db.String(50), default='general')  # 'reading', 'writing', 'research', etc.
     day_intensity = db.Column(db.String(20), default='light')
+    priority = db.Column(db.String(10), default='medium')  # 'high', 'medium', 'low'
     completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -464,56 +466,40 @@ class PhaseTaskGenerator:
     
     @staticmethod
     def distribute_tasks_by_intensity(task_templates, work_days, deadline, phase_id):
-        """Distribute tasks across work days respecting intensity preferences"""
+        """Distribute tasks evenly across work days with intelligent load balancing"""
         if not task_templates or not work_days:
             return []
         
-        # Calculate available work days between now and deadline
-        available_slots = PhaseTaskGenerator._calculate_available_slots(work_days, deadline)
+        # Get all available work days between now and deadline
+        available_days = PhaseTaskGenerator._get_available_work_days(work_days, deadline)
         
-        if not available_slots:
+        if not available_days:
             return []
         
-        # Create tasks distributed across available slots
+        total_tasks = len(task_templates)
+        total_days = len(available_days)
+        
+        # Calculate task distribution
+        task_distribution = PhaseTaskGenerator._calculate_task_distribution(
+            total_tasks, available_days
+        )
+        
+        # Create tasks based on the distribution
         tasks = []
         task_index = 0
         
-        for slot in available_slots:
-            if task_index >= len(task_templates):
-                break
+        for day_info in task_distribution:
+            tasks_for_day = day_info['task_count']
             
-            # Determine how many tasks for this slot based on intensity
-            tasks_for_slot = slot['capacity']
-            
-            # Create tasks for this slot
-            for _ in range(tasks_for_slot):
-                if task_index < len(task_templates):
+            for _ in range(tasks_for_day):
+                if task_index < total_tasks:
                     task = PhaseTask(
                         phase_id=phase_id,
-                        date=slot['date'],
+                        date=day_info['date'],
                         task_description=task_templates[task_index],
                         task_type=PhaseTaskGenerator._determine_task_type(task_templates[task_index]),
-                        day_intensity=slot['intensity'],
-                        completed=False,
-                        created_at=datetime.utcnow()
-                    )
-                    tasks.append(task)
-                    task_index += 1
-        
-        # If we have remaining tasks, cycle through available slots again
-        while task_index < len(task_templates) and available_slots:
-            for slot in available_slots:
-                if task_index >= len(task_templates):
-                    break
-                
-                # Add one more task to this slot if it has capacity
-                if slot.get('extra_capacity', True):
-                    task = PhaseTask(
-                        phase_id=phase_id,
-                        date=slot['date'],
-                        task_description=task_templates[task_index],
-                        task_type=PhaseTaskGenerator._determine_task_type(task_templates[task_index]),
-                        day_intensity=slot['intensity'],
+                        day_intensity=day_info['intensity'],
+                        priority=PhaseTaskGenerator._determine_task_priority(task_templates[task_index], task_index, len(task_templates)),
                         completed=False,
                         created_at=datetime.utcnow()
                     )
@@ -523,9 +509,9 @@ class PhaseTaskGenerator:
         return tasks
     
     @staticmethod
-    def _calculate_available_slots(work_days, deadline):
-        """Calculate available work slots between now and deadline"""
-        slots = []
+    def _get_available_work_days(work_days, deadline):
+        """Get all available work days between now and deadline"""
+        available_days = []
         current_date = datetime.now().date()
         end_date = deadline
         
@@ -534,19 +520,92 @@ class PhaseTaskGenerator:
             day_intensity = work_days.get(day_name, 'none')
             
             if day_intensity != 'none':
-                # Determine capacity based on intensity
-                capacity = 2 if day_intensity == 'heavy' else 1
-                
-                slots.append({
+                available_days.append({
                     'date': current_date,
                     'intensity': day_intensity,
-                    'capacity': capacity,
-                    'extra_capacity': True
+                    'day_name': day_name
                 })
             
             current_date += timedelta(days=1)
         
-        return slots
+        return available_days
+    
+    @staticmethod
+    def _calculate_task_distribution(total_tasks, available_days):
+        """Calculate intelligent task distribution across available days"""
+        if not available_days or total_tasks == 0:
+            return []
+        
+        total_days = len(available_days)
+        
+        # Separate light and heavy days
+        light_days = [day for day in available_days if day['intensity'] == 'light']
+        heavy_days = [day for day in available_days if day['intensity'] == 'heavy']
+        
+        # Calculate base distribution (evenly spread)
+        base_tasks_per_day = total_tasks // total_days
+        extra_tasks = total_tasks % total_days
+        
+        # Create distribution plan
+        distribution = []
+        
+        # If we have more tasks than days, we need to distribute intelligently
+        if total_tasks > total_days:
+            # Calculate capacity ratios (heavy days can handle more)
+            light_capacity_weight = 1.0
+            heavy_capacity_weight = 2.0
+            
+            # Calculate total capacity weights
+            total_capacity = (len(light_days) * light_capacity_weight + 
+                            len(heavy_days) * heavy_capacity_weight)
+            
+            # Distribute tasks proportionally
+            for day in available_days:
+                if day['intensity'] == 'light':
+                    # Light days get proportionally fewer tasks
+                    task_count = max(1, int((total_tasks * light_capacity_weight) / total_capacity))
+                else:  # heavy day
+                    # Heavy days get proportionally more tasks
+                    task_count = max(1, int((total_tasks * heavy_capacity_weight) / total_capacity))
+                
+                distribution.append({
+                    'date': day['date'],
+                    'intensity': day['intensity'],
+                    'task_count': task_count
+                })
+            
+            # Adjust for any rounding differences
+            assigned_tasks = sum(d['task_count'] for d in distribution)
+            remaining_tasks = total_tasks - assigned_tasks
+            
+            # Distribute remaining tasks, preferring heavy days
+            day_index = 0
+            while remaining_tasks > 0:
+                # Prefer heavy days for extra tasks
+                if distribution[day_index]['intensity'] == 'heavy' or len(heavy_days) == 0:
+                    distribution[day_index]['task_count'] += 1
+                    remaining_tasks -= 1
+                day_index = (day_index + 1) % len(distribution)
+        
+        else:
+            # We have fewer or equal tasks than days - distribute evenly
+            for i, day in enumerate(available_days):
+                task_count = base_tasks_per_day
+                # Distribute extra tasks to the first few days
+                if i < extra_tasks:
+                    task_count += 1
+                
+                distribution.append({
+                    'date': day['date'],
+                    'intensity': day['intensity'],
+                    'task_count': task_count
+                })
+        
+        # Remove days with 0 tasks and sort by date
+        distribution = [d for d in distribution if d['task_count'] > 0]
+        distribution.sort(key=lambda x: x['date'])
+        
+        return distribution
     
     @staticmethod
     def _determine_task_type(task_description):
@@ -584,6 +643,41 @@ class PhaseTaskGenerator:
         # Default to general
         else:
             return 'general'
+    
+    @staticmethod
+    def _determine_task_priority(task_description, task_index, total_tasks):
+        """Determine task priority based on description and position in timeline"""
+        task_lower = task_description.lower()
+        
+        # High priority keywords
+        high_priority_keywords = [
+            'deadline', 'urgent', 'critical', 'important', 'due', 'submit', 
+            'approval', 'irb', 'ethics', 'committee', 'proposal', 'defense'
+        ]
+        
+        # Low priority keywords  
+        low_priority_keywords = [
+            'optional', 'extra', 'additional', 'supplementary', 'bonus',
+            'explore', 'consider', 'maybe', 'if time'
+        ]
+        
+        # Check for explicit priority keywords
+        if any(word in task_lower for word in high_priority_keywords):
+            return 'high'
+        
+        if any(word in task_lower for word in low_priority_keywords):
+            return 'low'
+        
+        # Priority based on position in timeline
+        # First 20% of tasks are high priority (foundational work)
+        # Last 20% of tasks are high priority (final deliverables)
+        # Middle 60% are medium priority
+        position_ratio = task_index / max(1, total_tasks - 1)
+        
+        if position_ratio <= 0.2 or position_ratio >= 0.8:
+            return 'high'
+        
+        return 'medium'
     
     @staticmethod
     def adjust_tasks_for_dependencies(phase_tasks):
@@ -1792,7 +1886,7 @@ def update_day_intensity():
     return redirect(url_for('day_detail', date_str=date.strftime('%Y-%m-%d')))
 
 def find_next_available_slot(student, from_date):
-    """Find the next available work day that has capacity for additional tasks"""
+    """Find the next available work day for rescheduling a task"""
     work_day_preferences = json.loads(student.work_days) if student.work_days else {}
     current_date = from_date + timedelta(days=1)
     end_date = student.lit_review_deadline
@@ -1803,16 +1897,24 @@ def find_next_available_slot(student, from_date):
         
         if day_intensity != 'none':
             # Check how many tasks are already scheduled for this day
-            existing_tasks_count = ScheduleItem.query.filter_by(
-                student_id=student.id,
-                date=current_date
-            ).count()
+            # Handle both PhaseTask and ScheduleItem models
+            if student.is_multi_phase:
+                existing_tasks_count = PhaseTask.query.join(ProjectPhase).filter(
+                    ProjectPhase.student_id == student.id,
+                    PhaseTask.date == current_date
+                ).count()
+            else:
+                existing_tasks_count = ScheduleItem.query.filter_by(
+                    student_id=student.id,
+                    date=current_date
+                ).count()
             
-            # Determine capacity based on intensity
-            max_capacity = 2 if day_intensity == 'heavy' else 1
+            # For rescheduling, we use a more flexible approach
+            # Heavy days can handle more tasks than light days
+            reasonable_limit = 3 if day_intensity == 'heavy' else 2
             
-            # If this day has capacity, return it
-            if existing_tasks_count < max_capacity:
+            # If this day hasn't exceeded reasonable limits, use it
+            if existing_tasks_count < reasonable_limit:
                 return current_date
         
         current_date += timedelta(days=1)
@@ -1820,65 +1922,65 @@ def find_next_available_slot(student, from_date):
     return None
 
 def readjust_schedule_from_date(student_id, from_date):
-    """Intelligently readjust schedule from a specific date forward, respecting capacity"""
+    """Intelligently readjust schedule from a specific date forward using new distribution logic"""
     student = Student.query.get(student_id)
     work_day_preferences = json.loads(student.work_days) if student.work_days else {}
     
     # Get all incomplete tasks from this date forward
-    future_tasks = ScheduleItem.query.filter(
-        ScheduleItem.student_id == student_id,
-        ScheduleItem.date >= from_date,
-        ScheduleItem.completed == False
-    ).order_by(ScheduleItem.date).all()
+    if student.is_multi_phase:
+        future_tasks = PhaseTask.query.join(ProjectPhase).filter(
+            ProjectPhase.student_id == student_id,
+            PhaseTask.date >= from_date,
+            PhaseTask.completed == False
+        ).order_by(PhaseTask.date).all()
+        deadline = max([phase.deadline for phase in student.project_phases if phase.is_active])
+    else:
+        future_tasks = ScheduleItem.query.filter(
+            ScheduleItem.student_id == student_id,
+            ScheduleItem.date >= from_date,
+            ScheduleItem.completed == False
+        ).order_by(ScheduleItem.date).all()
+        deadline = student.lit_review_deadline
     
-    # Create a list of available slots with their capacities
+    if not future_tasks:
+        return
+    
+    # Get available work days from the from_date to deadline
+    available_days = []
     current_date = from_date
-    end_date = student.lit_review_deadline
-    available_slots = []
     
-    while current_date <= end_date:
+    while current_date <= deadline:
         day_name = current_date.strftime('%A').lower()
         day_intensity = work_day_preferences.get(day_name, 'none')
         
         if day_intensity != 'none':
-            # Check existing task count for this day
-            existing_count = ScheduleItem.query.filter_by(
-                student_id=student_id,
-                date=current_date
-            ).count()
-            
-            # Calculate remaining capacity
-            max_capacity = 2 if day_intensity == 'heavy' else 1
-            remaining_capacity = max_capacity - existing_count
-            
-            if remaining_capacity > 0:
-                available_slots.append({
-                    'date': current_date,
-                    'intensity': day_intensity,
-                    'capacity': remaining_capacity
-                })
+            available_days.append({
+                'date': current_date,
+                'intensity': day_intensity
+            })
         
         current_date += timedelta(days=1)
     
-    # Redistribute tasks intelligently
-    slot_index = 0
-    for task in future_tasks:
-        if slot_index < len(available_slots):
-            slot = available_slots[slot_index]
-            
-            # Move task to this slot
-            task.date = slot['date']
-            task.day_intensity = slot['intensity']
-            
-            # Reduce slot capacity
-            slot['capacity'] -= 1
-            
-            # Move to next slot if current one is full
-            if slot['capacity'] <= 0:
-                slot_index += 1
-        else:
-            # No more available slots - extend deadline or create warning
-            flash(f'Warning: Task "{task.task_description}" could not be rescheduled within deadline.')
+    if not available_days:
+        flash('Warning: No available work days found for rescheduling.')
+        return
+    
+    # Use the new distribution logic for rescheduling
+    task_distribution = PhaseTaskGenerator._calculate_task_distribution(
+        len(future_tasks), available_days
+    )
+    
+    # Redistribute tasks based on the new distribution
+    task_index = 0
+    for day_info in task_distribution:
+        tasks_for_day = day_info['task_count']
+        
+        for _ in range(tasks_for_day):
+            if task_index < len(future_tasks):
+                task = future_tasks[task_index]
+                task.date = day_info['date']
+                task.day_intensity = day_info['intensity']
+                task_index += 1
     
     db.session.commit()
 
@@ -2083,6 +2185,159 @@ def adjust_schedule_if_needed(student_id, date, tasks_completed_count):
     # This function is simplified since we're no longer tracking hours
     # Could be used to adjust future task distribution based on completion patterns
     pass
+
+@app.route('/toggle_task_completion', methods=['POST'])
+@login_required
+def toggle_task_completion():
+    """Toggle task completion status from remaining tasks page"""
+    try:
+        task_id = request.form.get('task_id')
+        is_completed = request.form.get('completed') == 'true'
+        
+        if not task_id:
+            return jsonify({'error': 'Task ID is required'}), 400
+        
+        # Handle both PhaseTask and ScheduleItem models
+        task = None
+        if current_user.is_multi_phase:
+            task = PhaseTask.query.join(ProjectPhase).filter(
+                PhaseTask.id == task_id,
+                ProjectPhase.student_id == current_user.id
+            ).first()
+        else:
+            task = ScheduleItem.query.filter_by(
+                id=task_id,
+                student_id=current_user.id
+            ).first()
+        
+        if not task:
+            return jsonify({'error': 'Task not found'}), 404
+        
+        task.completed = is_completed
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'completed': is_completed
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/add_task', methods=['POST'])
+@login_required
+def add_task():
+    """Add a new task from remaining tasks page"""
+    try:
+        task_description = request.form.get('task_description', '').strip()
+        task_date = request.form.get('task_date')
+        task_intensity = request.form.get('task_intensity', 'light')
+        task_priority = request.form.get('task_priority', 'medium')
+        phase_id = request.form.get('phase_id', type=int)
+        
+        if not task_description:
+            return jsonify({'error': 'Task description is required'}), 400
+        
+        if not task_date:
+            return jsonify({'error': 'Task date is required'}), 400
+        
+        try:
+            task_date = datetime.strptime(task_date, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format'}), 400
+        
+        # Create new task based on user type
+        if current_user.is_multi_phase:
+            # Validate phase_id if provided
+            if phase_id:
+                phase = ProjectPhase.query.filter_by(
+                    id=phase_id,
+                    student_id=current_user.id,
+                    is_active=True
+                ).first()
+                if not phase:
+                    return jsonify({'error': 'Invalid phase selected'}), 400
+            else:
+                # If no phase specified, use the first active phase
+                phase = ProjectPhase.query.filter_by(
+                    student_id=current_user.id,
+                    is_active=True
+                ).order_by(ProjectPhase.order_index).first()
+                if phase:
+                    phase_id = phase.id
+            
+            new_task = PhaseTask(
+                phase_id=phase_id,
+                date=task_date,
+                task_description=task_description,
+                task_type='general',
+                day_intensity=task_intensity,
+                priority=task_priority,
+                completed=False,
+                created_at=datetime.utcnow()
+            )
+        else:
+            new_task = ScheduleItem(
+                student_id=current_user.id,
+                date=task_date,
+                task_description=task_description,
+                day_intensity=task_intensity,
+                priority=task_priority,
+                completed=False,
+                created_at=datetime.utcnow()
+            )
+        
+        db.session.add(new_task)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Task added successfully',
+            'task_id': new_task.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/mark_today_complete', methods=['POST'])
+@login_required
+def mark_today_complete():
+    """Mark all of today's tasks as complete"""
+    try:
+        today = datetime.now().date()
+        
+        if current_user.is_multi_phase:
+            today_tasks = PhaseTask.query.join(ProjectPhase).filter(
+                ProjectPhase.student_id == current_user.id,
+                PhaseTask.date == today,
+                PhaseTask.completed == False
+            ).all()
+        else:
+            today_tasks = ScheduleItem.query.filter_by(
+                student_id=current_user.id,
+                date=today,
+                completed=False
+            ).all()
+        
+        completed_count = 0
+        for task in today_tasks:
+            task.completed = True
+            completed_count += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Marked {completed_count} tasks as complete',
+            'completed_count': completed_count
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     with app.app_context():

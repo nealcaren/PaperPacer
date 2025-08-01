@@ -15,11 +15,31 @@
                     <div class="phase-tab-header">
                         <span class="phase-icon">{{ get_phase_icon(phase.phase_type) }}</span>
                         <span class="phase-name">{{ phase.phase_name }}</span>
-                        <span class="phase-progress">{{ phase_progress.progress_percentage }}%</span>
+                        <div class="phase-progress-container">
+                            <div class="circular-progress" data-progress="{{ phase_progress.progress_percentage }}">
+                                <svg class="progress-ring" width="40" height="40">
+                                    <circle class="progress-ring-circle" stroke="var(--gray-200)" stroke-width="3" fill="transparent" r="16" cx="20" cy="20"/>
+                                    <circle class="progress-ring-progress" stroke="var(--primary-color)" stroke-width="3" fill="transparent" r="16" cx="20" cy="20" 
+                                            style="stroke-dasharray: {{ 100.53 }}; stroke-dashoffset: {{ 100.53 - (100.53 * phase_progress.progress_percentage / 100) }};"/>
+                                </svg>
+                                <span class="progress-text">{{ "%.0f"|format(phase_progress.progress_percentage) }}%</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="phase-tab-details">
-                        <div class="phase-deadline">Due: {{ phase.deadline.strftime('%b %d, %Y') }}</div>
-                        <div class="phase-tasks">{{ phase_progress.completed_tasks }}/{{ phase_progress.total_tasks }} tasks</div>
+                        <div class="phase-deadline">
+                            {% set days_left = (phase.deadline - today).days if today else 0 %}
+                            <span class="deadline-info {% if days_left < 7 %}urgent{% elif days_left < 14 %}warning{% endif %}">
+                                📅 {{ phase.deadline.strftime('%b %d') }} 
+                                <small>({{ days_left }} days left)</small>
+                            </span>
+                        </div>
+                        <div class="phase-tasks">
+                            <div class="task-progress-bar">
+                                <div class="progress-bar-fill" style="width: {{ phase_progress.progress_percentage }}%"></div>
+                            </div>
+                            <span class="task-count">{{ phase_progress.completed_tasks }}/{{ phase_progress.total_tasks }} tasks</span>
+                        </div>
                     </div>
                 </div>
             {% endfor %}
@@ -73,6 +93,29 @@
         <div class="flex gap-2" style="margin-top: 1rem;">
             <a href="{{ url_for('daily_checkin') }}" class="btn" style="flex: 1;">📝 Today's Check-in</a>
             <a href="{{ url_for('remaining_tasks') }}" class="btn btn-secondary" style="flex: 1;">📋 All Tasks</a>
+        </div>
+    </div>
+
+    <!-- Quick Actions Panel -->
+    <div class="card quick-actions-card">
+        <h3>⚡ Quick Actions</h3>
+        <div class="quick-actions-grid">
+            <button class="quick-action-btn" onclick="showAddTaskModal()">
+                <div class="quick-action-icon">➕</div>
+                <div class="quick-action-text">Add Task</div>
+            </button>
+            <button class="quick-action-btn" onclick="markTodayComplete()">
+                <div class="quick-action-icon">✅</div>
+                <div class="quick-action-text">Mark Today Done</div>
+            </button>
+            <button class="quick-action-btn" onclick="showRescheduleModal()">
+                <div class="quick-action-icon">📅</div>
+                <div class="quick-action-text">Reschedule</div>
+            </button>
+            <a href="{{ url_for('settings') }}" class="quick-action-btn">
+                <div class="quick-action-icon">⚙️</div>
+                <div class="quick-action-text">Settings</div>
+            </a>
         </div>
     </div>
 
@@ -702,5 +745,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Quick Actions Functions
+function showAddTaskModal() {
+    // Redirect to remaining tasks page and trigger modal
+    window.location.href = "{{ url_for('remaining_tasks') }}?action=add_task";
+}
+
+function markTodayComplete() {
+    if (confirm('Mark all of today\'s tasks as complete?')) {
+        // This would need a new route to mark all today's tasks complete
+        fetch('/mark_today_complete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error marking tasks complete');
+        });
+    }
+}
+
+function showRescheduleModal() {
+    // For now, redirect to remaining tasks
+    window.location.href = "{{ url_for('remaining_tasks') }}";
+}
 </script>
 {% endblock %}

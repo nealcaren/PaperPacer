@@ -27,9 +27,11 @@
     {% endwith %}
 
     <!-- Main Content -->
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+    <div class="app-container">
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 
     <!-- Flash message styles -->
     <style>
