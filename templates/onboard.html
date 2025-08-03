@@ -331,11 +331,23 @@ class OnboardingWizard {
     
     init() {
         this.bindEvents();
+        this.initializeButtonStates(); // Ensure buttons start in correct state
         this.updateStep(); // Ensure initial step is shown
         this.updateProgress();
         this.initPhaseToggles();
         this.initPresets();
         this.initAutoSave();
+    }
+    
+    initializeButtonStates() {
+        // Ensure buttons start in the correct state for step 1
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'flex';
+        submitBtn.style.display = 'none';
     }
     
     bindEvents() {
