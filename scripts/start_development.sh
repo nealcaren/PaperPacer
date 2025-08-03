@@ -1,9 +1,13 @@
 #!/bin/bash
 
-# Production startup script for PaperPacer
-# This script starts the application using Gunicorn WSGI server
+# Development startup script for PaperPacer
+# This script starts the application using Flask's development server
+# Usage: Run from the project root directory: ./scripts/start_development.sh
 
-echo "🚀 Starting PaperPacer in production mode..."
+echo "🔧 Starting PaperPacer in development mode..."
+
+# Change to project root directory
+cd "$(dirname "$0")/.."
 
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
@@ -19,9 +23,9 @@ source venv/bin/activate
 echo "📚 Installing dependencies..."
 pip install -r requirements.txt
 
-# Set production environment variables
-export FLASK_ENV=production
-export FLASK_DEBUG=0
+# Set development environment variables
+export FLASK_ENV=development
+export FLASK_DEBUG=1
 
 # Create instance directory if it doesn't exist
 mkdir -p instance
@@ -30,10 +34,11 @@ mkdir -p instance
 echo "🗄️  Initializing database..."
 python -c "from app import app, db; app.app_context().push(); db.create_all(); print('Database ready!')"
 
-# Start Gunicorn server
-echo "🌟 Starting Gunicorn server..."
-echo "📍 Server will be available at: http://localhost:8000"
+# Start Flask development server
+echo "🌟 Starting Flask development server..."
+echo "📍 Server will be available at: http://localhost:5000"
 echo "🛑 Press Ctrl+C to stop the server"
+echo "🔄 Auto-reload enabled for development"
 echo ""
 
-gunicorn --config gunicorn.conf.py wsgi:app
+python app.py

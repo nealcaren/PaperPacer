@@ -47,7 +47,7 @@ A comprehensive web application that helps students manage their senior honors t
 
 3. **Initialize the database**:
    ```bash
-   python init_db.py
+   python scripts/init_db.py
    ```
 
 4. **Configure email** (optional - see [EMAIL_SETUP.md](EMAIL_SETUP.md)):
@@ -106,25 +106,44 @@ Dynamic schedule management:
 ```
 paper-pacer-prep/
 ├── app.py                    # Main Flask application with routes and models
-├── config.py                 # Configuration management for different environments
-├── init_db.py               # Database initialization and schema updates
-├── requirements.txt         # Python dependencies
-├── .env.example            # Environment variables template
-├── EMAIL_SETUP.md          # Comprehensive email configuration guide
-├── templates/              # Jinja2 HTML templates
-│   ├── base.html           # Base template with modern CSS and components
-│   ├── index.html          # Welcome/landing page
-│   ├── register.html       # User registration form
-│   ├── login.html          # User login with password reset link
+├── requirements.txt          # Python dependencies
+├── phase_progress_tracker.py # Phase progress tracking logic
+├── schedule_coordinator.py   # Task scheduling coordination
+├── static/                   # CSS, JS, images
+├── templates/                # Jinja2 HTML templates
+│   ├── base.html            # Base template with modern CSS and components
+│   ├── index.html           # Welcome/landing page
+│   ├── register.html        # User registration form
+│   ├── login.html           # User login with password reset link
 │   ├── forgot_password.html # Password reset request form
 │   ├── reset_password.html  # Secure password reset form
-│   ├── onboard.html        # Project onboarding with dropdown selectors
-│   ├── dashboard.html      # Main dashboard with interactive calendar
-│   ├── daily_checkin.html  # Daily progress with toggle switches
-│   ├── day_detail.html     # Individual day management interface
+│   ├── onboard.html         # Project onboarding with dropdown selectors
+│   ├── dashboard.html       # Main dashboard with interactive calendar
+│   ├── daily_checkin.html   # Daily progress with toggle switches
+│   ├── day_detail.html      # Individual day management interface
 │   ├── remaining_tasks.html # Comprehensive task overview
-│   └── settings.html       # User settings and preferences
-└── paperpacer.db           # SQLite database (auto-created)
+│   └── settings.html        # User settings and preferences
+├── instance/                 # Database and instance-specific files
+├── tests/                    # Test files
+├── config/                   # Configuration files
+│   ├── config.py            # Flask configuration
+│   └── .env.example         # Environment variables template
+├── scripts/                  # Utility scripts
+│   ├── init_db.py           # Database initialization
+│   ├── migrate_to_multiphase.py # Migration script
+│   ├── start_development.sh  # Development server startup
+│   └── start_production.sh   # Production server startup
+├── deployment/               # Deployment configuration
+│   ├── wsgi.py              # WSGI entry point
+│   ├── gunicorn.conf.py     # Gunicorn configuration
+│   ├── Dockerfile           # Docker configuration
+│   ├── docker-compose.yml   # Docker Compose setup
+│   ├── nginx.conf           # Nginx configuration
+│   └── paperpacer.service   # Systemd service file
+└── docs/                     # Documentation
+    ├── CLAUDE.md            # Development notes
+    ├── published-exerpt.md  # Published excerpt
+    └── thesis-timeline.md   # Timeline documentation
 ```
 
 ## 🗄️ Database Schema

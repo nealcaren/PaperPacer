@@ -2,7 +2,15 @@
 """
 Migration script to add multi-phase support to existing PaperPacer database
 This script safely migrates existing users to the new multi-phase system
+
+Usage: Run from the project root directory:
+    python scripts/migrate_to_multiphase.py
 """
+
+import sys
+import os
+# Add parent directory to path so we can import app
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app, db, Student, ScheduleItem, ProjectPhase, PhaseTask, PhaseType
 from datetime import datetime

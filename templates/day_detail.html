@@ -28,29 +28,65 @@
                 <form action="{{ url_for('submit_progress') }}" method="POST" id="task-form">
                     <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
                     
+                    <!-- Quick Actions for Task Management -->
+                    {% set has_incomplete_tasks = day_tasks|selectattr('completed', 'equalto', false)|list|length > 0 %}
+                    {% if (is_today or selected_date < today) and has_incomplete_tasks %}
+                    <div class="task-quick-actions" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--gray-50); border-radius: var(--border-radius);">
+                        <div class="flex gap-2">
+                            <button type="button" onclick="markAllTasksComplete()" class="btn btn-secondary" style="flex: 1;">
+                                ✅ Mark All Complete
+                            </button>
+                            <button type="button" onclick="markAllTasksIncomplete()" class="btn btn-secondary" style="flex: 1;">
+                                ↩️ Mark All Incomplete
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div style="space-y: 1rem;">
                         {% for task in day_tasks %}
-                            <div class="toggle-container {% if task.completed %}completed{% endif %}" id="task-container-{{ task.id }}">
+                            <div class="task-item task-status-{{ task.status or 'not_started' }}" id="task-container-{{ task.id }}">
                                 <div class="flex items-start gap-3" style="width: 100%;">
-                                    {% if is_today or (selected_date < today and not task.completed) %}
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="task_{{ task.id }}" name="completed_tasks" value="{{ task.id }}"
-                                                   {% if task.completed %}checked{% endif %}
-                                                   onchange="updateTaskContainer({{ task.id }})">
-                                            <span class="toggle-slider round"></span>
-                                        </label>
-                                    {% endif %}
+                                    <div class="task-status-controls">
+                                        {% if is_today or selected_date < today %}
+                                        <div class="status-dropdown">
+                                            <select onchange="updateTaskStatus({{ task.id }}, this.value)" class="task-status-select">
+                                                <option value="not_started" {% if (task.status or 'not_started') == 'not_started' %}selected{% endif %}>📋 Not Started</option>
+                                                <option value="in_progress" {% if (task.status or 'not_started') == 'in_progress' %}selected{% endif %}>🔄 In Progress</option>
+                                                <option value="completed" {% if (task.status or 'not_started') == 'completed' %}selected{% endif %}>✅ Completed</option>
+                                                <option value="deferred" {% if (task.status or 'not_started') == 'deferred' %}selected{% endif %}>⏭️ Defer</option>
+                                            </select>
+                                        </div>
+                                        {% else %}
+                                        <div class="status-display">
+                                            {% set status = task.status or 'not_started' %}
+                                            {% if status == 'not_started' %}📋 Not Started
+                                            {% elif status == 'in_progress' %}🔄 In Progress
+                                            {% elif status == 'completed' %}✅ Completed
+                                            {% elif status == 'deferred' %}⏭️ Deferred
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
                                     <div style="flex: 1;">
-                                        <div style="font-weight: 500; margin-bottom: 0.5rem;">
+                                        <div class="task-description" style="font-weight: 500; margin-bottom: 0.5rem;">
                                             {{ task.task_description }}
                                         </div>
                                         <div class="flex items-center gap-2">
                                             <span class="text-xs" style="padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.2); color: inherit; border-radius: 12px; border: 1px solid rgba(255,255,255,0.3);">
                                                 {{ task.day_intensity|title }} Day
                                             </span>
-                                            {% if task.completed %}
-                                                <span style="font-weight: 600; font-size: 0.9rem;">✓ Completed</span>
+                                            {% if task.priority %}
+                                            <span class="task-priority {{ task.priority or 'medium' }}">{{ (task.priority or 'medium')|title }}</span>
                                             {% endif %}
+                                            <span class="task-status-badge status-{{ task.status or 'not_started' }}">
+                                                {% set status = task.status or 'not_started' %}
+                                                {% if status == 'not_started' %}Not Started
+                                                {% elif status == 'in_progress' %}In Progress
+                                                {% elif status == 'completed' %}Completed
+                                                {% elif status == 'deferred' %}Deferred
+                                                {% endif %}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -159,6 +195,147 @@
 </div>
 
 <script>
+function updateTaskStatus(taskId, newStatus) {
+    const originalSelect = document.querySelector(`select[onchange*="${taskId}"]`);
+    const originalValue = originalSelect.value;
+    
+    fetch('{{ url_for("update_task_status") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `task_id=${taskId}&status=${newStatus}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const container = document.getElementById('task-container-' + taskId);
+            const statusBadge = container.querySelector('.task-status-badge');
+            
+            // Update container class
+            container.className = container.className.replace(/task-status-\w+/, `task-status-${data.status}`);
+            
+            // Update status badge
+            if (statusBadge) {
+                statusBadge.className = statusBadge.className.replace(/status-\w+/, `status-${data.status}`);
+                const statusText = {
+                    'not_started': 'Not Started',
+                    'in_progress': 'In Progress', 
+                    'completed': 'Completed',
+                    'deferred': 'Deferred'
+                };
+                statusBadge.textContent = statusText[data.status];
+            }
+            
+            // Show message for deferred tasks
+            if (data.status === 'deferred' && data.new_date) {
+                const newDate = new Date(data.new_date).toLocaleDateString();
+                showNotification(`Task deferred to ${newDate}`, 'info');
+            } else if (data.status === 'in_progress') {
+                showNotification('Task marked as in progress! Keep going! 💪', 'success');
+            } else if (data.status === 'completed') {
+                showNotification('Great job completing this task! 🎉', 'success');
+            }
+            
+            // Update quick actions visibility
+            updateQuickActionsVisibility();
+        } else {
+            alert('Error updating task: ' + data.error);
+            // Revert select value
+            originalSelect.value = originalValue;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating task. Please try again.');
+        // Revert select value
+        originalSelect.value = originalValue;
+    });
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md);
+        color: white;
+        font-weight: 500;
+        max-width: 300px;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    if (type === 'success') {
+        notification.style.background = 'var(--success-color)';
+    } else if (type === 'info') {
+        notification.style.background = 'var(--primary-color)';
+    }
+    
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Legacy function for backward compatibility
+function toggleTaskCompletion(taskId, isCompleted) {
+    updateTaskStatus(taskId, isCompleted ? 'completed' : 'not_started');
+}
+
+function markAllTasksComplete() {
+    if (confirm('Mark all tasks for this day as complete?')) {
+        const selects = document.querySelectorAll('.task-status-select');
+        selects.forEach(select => {
+            if (select.value !== 'completed') {
+                const taskId = select.getAttribute('onchange').match(/\d+/)[0];
+                select.value = 'completed';
+                updateTaskStatus(taskId, 'completed');
+            }
+        });
+    }
+}
+
+function markAllTasksIncomplete() {
+    if (confirm('Mark all tasks for this day as not started?')) {
+        const selects = document.querySelectorAll('.task-status-select');
+        selects.forEach(select => {
+            if (select.value !== 'not_started') {
+                const taskId = select.getAttribute('onchange').match(/\d+/)[0];
+                select.value = 'not_started';
+                updateTaskStatus(taskId, 'not_started');
+            }
+        });
+    }
+}
+
+function updateQuickActionsVisibility() {
+    const quickActions = document.querySelector('.task-quick-actions');
+    if (quickActions) {
+        const incompleteSelects = document.querySelectorAll('.task-status-select');
+        let hasIncomplete = false;
+        
+        incompleteSelects.forEach(select => {
+            if (select.value !== 'completed') {
+                hasIncomplete = true;
+            }
+        });
+        
+        if (!hasIncomplete) {
+            quickActions.style.display = 'none';
+        } else {
+            quickActions.style.display = 'block';
+        }
+    }
+}
+
+// Legacy function for form compatibility
 function updateTaskContainer(taskId) {
     const container = document.getElementById('task-container-' + taskId);
     const checkbox = document.getElementById('task_' + taskId);

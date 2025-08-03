@@ -14,7 +14,7 @@ import os
 import enum
 
 # Import configuration
-from config import config
+from config.config import config
 
 app = Flask(__name__)
 
@@ -132,7 +132,8 @@ class ScheduleItem(db.Model):
     task_description = db.Column(db.Text, nullable=False)
     day_intensity = db.Column(db.String(20), default='light')  # 'none', 'light', 'heavy'
     priority = db.Column(db.String(10), default='medium')  # 'high', 'medium', 'low'
-    completed = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), default='not_started')  # 'not_started', 'in_progress', 'completed', 'deferred'
+    completed = db.Column(db.Boolean, default=False)  # Keep for backward compatibility
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class ProgressLog(db.Model):
@@ -184,7 +185,8 @@ class PhaseTask(db.Model):
     task_type = db.Column(db.String(50), default='general')  # 'reading', 'writing', 'research', etc.
     day_intensity = db.Column(db.String(20), default='light')
     priority = db.Column(db.String(10), default='medium')  # 'high', 'medium', 'low'
-    completed = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), default='not_started')  # 'not_started', 'in_progress', 'completed', 'deferred'
+    completed = db.Column(db.Boolean, default=False)  # Keep for backward compatibility
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Computed property for student_id (for backward compatibility)
@@ -488,6 +490,7 @@ class PhaseTaskGenerator:
                         task_type=PhaseTaskGenerator._determine_task_type(task_templates[task_index]),
                         day_intensity=day_info['intensity'],
                         priority=PhaseTaskGenerator._determine_task_priority(task_templates[task_index], task_index, len(task_templates)),
+                        status='not_started',
                         completed=False,
                         created_at=datetime.utcnow()
                     )
@@ -2201,13 +2204,76 @@ def toggle_task_completion():
         if not task:
             return jsonify({'error': 'Task not found'}), 404
         
-        task.completed = is_completed
+        # Update both status and completed fields
+        if is_completed:
+            task.status = 'completed'
+            task.completed = True
+        else:
+            task.status = 'not_started'
+            task.completed = False
+        
         db.session.commit()
         
         return jsonify({
             'success': True,
             'task_id': task_id,
-            'completed': is_completed
+            'completed': is_completed,
+            'status': task.status
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/update_task_status', methods=['POST'])
+@login_required
+def update_task_status():
+    """Update task status (not_started, in_progress, completed, deferred)"""
+    try:
+        task_id = request.form.get('task_id')
+        new_status = request.form.get('status')
+        
+        if not task_id or not new_status:
+            return jsonify({'error': 'Task ID and status are required'}), 400
+        
+        if new_status not in ['not_started', 'in_progress', 'completed', 'deferred']:
+            return jsonify({'error': 'Invalid status'}), 400
+        
+        # Handle both PhaseTask and ScheduleItem models
+        task = None
+        if current_user.is_multi_phase:
+            task = PhaseTask.query.join(ProjectPhase).filter(
+                PhaseTask.id == task_id,
+                ProjectPhase.student_id == current_user.id
+            ).first()
+        else:
+            task = ScheduleItem.query.filter_by(
+                id=task_id,
+                student_id=current_user.id
+            ).first()
+        
+        if not task:
+            return jsonify({'error': 'Task not found'}), 404
+        
+        # Update status and completed field for backward compatibility
+        task.status = new_status
+        task.completed = (new_status == 'completed')
+        
+        # If deferred, move to next available day
+        if new_status == 'deferred':
+            next_slot = find_next_available_slot(current_user, task.date)
+            if next_slot:
+                task.date = next_slot
+                task.status = 'not_started'  # Reset status when rescheduled
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'status': task.status,
+            'completed': task.completed,
+            'new_date': task.date.strftime('%Y-%m-%d') if new_status == 'deferred' else None
         })
         
     except Exception as e:
@@ -2263,6 +2329,7 @@ def add_task():
                 task_type='general',
                 day_intensity=task_intensity,
                 priority=task_priority,
+                status='not_started',
                 completed=False,
                 created_at=datetime.utcnow()
             )
@@ -2273,6 +2340,7 @@ def add_task():
                 task_description=task_description,
                 day_intensity=task_intensity,
                 priority=task_priority,
+                status='not_started',
                 completed=False,
                 created_at=datetime.utcnow()
             )

@@ -2,7 +2,15 @@
 """
 Database initialization script for PaperPacer
 Run this to create/recreate the database with the correct schema
+
+Usage: Run from the project root directory:
+    python scripts/init_db.py
 """
+
+import sys
+import os
+# Add parent directory to path so we can import app
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app, db
 import os
